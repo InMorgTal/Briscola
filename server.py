@@ -33,9 +33,8 @@ while True:
         break
 
 inizio_partita(listaGiocatori)
-random.shuffle(mazzo)
-
-
+random.shuflle(mazzo)
+#creare le liste mani per i giocatori
 
 
 
