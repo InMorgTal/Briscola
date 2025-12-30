@@ -34,7 +34,15 @@ while True:
 
 inizio_partita(listaGiocatori)
 random.shuflle(mazzo)
-#creare le liste mani per i giocatori
+
+mani=[]
+for i in range(len(listaGiocatori)):
+    mano = []
+    mani.append(mano)
+for i in range (3):
+    for mano in mani:
+        mano.append(mazzo.pop(0))#abbiamo distribuit ocarte
+
 
 
 
