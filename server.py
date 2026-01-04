@@ -124,7 +124,7 @@ threadGiocatori = []
 
 timer = None
 
-TIMEOUT = 5
+TIMEOUT = 30
 
 avvio = False
 
