@@ -144,7 +144,7 @@ def timerScaduto():
             print("🚀 Parto con 4 client")
             avvio = True
         else:
-            print("numero giocatori invalido, avvio senza il terzo", n)
+            print("numero giocatori invalido, riavvio timer", n)
             timer = threading.Timer(TIMEOUT, timerScaduto)
             timer.start()
 
@@ -203,13 +203,16 @@ sSocket.bind(("localhost", 1234))
 
 sSocket.listen(4)
 
+
 while True:
 
     c = input("Avviare nuova partita? Y/N: ")
     
     if c == 'N':
         break
-    
+
+    #ATTESA NUOVI GIOCATORI 
+
     listaGiocatori = []
     avvio = False  # reset avvio
     print("Server in attesa")
@@ -224,13 +227,23 @@ while True:
 
     for t in threadGiocatori:
         t.join()
+    threadGiocatori.clear()
 
-# INIZIO GIOCO...
-    # avviamo partita
+
+
+    # INIZIO GIOCO
+
+
+
+
+
+    # comunichiamo avvio partita
     for g in listaGiocatori:
+        print("inizio gioco")
         g.sendall("La partita inizia!")
 
     # mischiamo mazzo
+    random.shuffle(mazzo)
     random.shuffle(mazzo)
 
     # creo una lista mano e pila per ogni giocatore e le metto in una lista cartegiocatori
@@ -241,6 +254,8 @@ while True:
 
     mazzo.append(mazzo.pop(0))
     briscola=mazzo[-1][0]
+
+
     # estraggo una carta alla volta dal mazzo per ogni mano, fino a quando ogni mano e' composta da 3 carte
 
     for i in range (3):
