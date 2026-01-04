@@ -57,7 +57,6 @@ import time
 import random
 #VARIABILI GLOBALI--------------------------------------------
 
-listaGiocatori = []
 
 mazzo = [
     'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10',
@@ -120,21 +119,19 @@ tavolo = {}
 
 carteGiocatori = {}
 
-threadGiocatori = []
-
-timer = None
-
-TIMEOUT = 30
+listaGiocatori = []
 
 avvio = False
 
-lock = threading.Lock()
+tempo = 15
 
+lock = threading.Lock()
 
 # FUNZIONI-----------------------------------------------------
 
+
 def timerScaduto():
-    global timer, avvio
+    global avvio
     with lock:
         n = len(listaGiocatori)
         if n == 2:
@@ -145,52 +142,46 @@ def timerScaduto():
             avvio = True
         else:
             print("numero giocatori invalido, riavvio timer", n)
-            timer = threading.Timer(TIMEOUT, timerScaduto)
-            timer.start()
-
-
+           
 def giocatore_arrivato(conn):
-    global timer
+
     with lock:
         listaGiocatori.append(conn)
         n = len(listaGiocatori)
-        print(f"➡ Giocatore arrivato, tot: {n}")
-
-        if n == 2 and timer is None:
-            timer = threading.Timer(TIMEOUT, timerScaduto)
-            timer.start()
-            print("▶ Timer avviato")
-
-        if n == 4:
-            if timer:
-                timer.cancel()
-                timer = None
-            timerScaduto()
+        print(f"Giocatore arrivato, tot: {n}")
 
 
 def giocatore_uscito(conn):
-    global timer
     with lock:
         if conn in listaGiocatori:
             listaGiocatori.remove(conn)
             n = len(listaGiocatori)
-            print(f"⬅ Giocatore uscito, rimasti: {n}")
-
-            if n < 2 and timer:
-                timer.cancel()
-                timer = None
-                print("⛔ Timer annullato (client insufficienti)")
-        else:
-            print("⚠️ Connessione non trovata nella lista")
+            print(f"Giocatore uscito, rimasti: {n}")
+    conn.close()
 
 
 def verificaConnessione(conn):
-    while True:
-        data = conn.recv(1024)
+    while avvio==False:
+       
+        conn.sendall(b"Ping")
+        data = conn.recv(1024).decode()
         if not data:
+            giocatore_uscito(conn)
             break
-    giocatore_uscito(conn)
-    conn.close()
+        print(f"{conn}:{data}")
+        time.sleep(1.5)
+    conn.sendall(b"Start")
+    
+    
+
+def accettaGiocatori(sSocket):
+
+    while avvio==False:
+        cSocket, cAddr = sSocket.accept()
+        giocatore_arrivato(cSocket)
+        t = threading.Thread(target=verificaConnessione,args=(cSocket,))
+        t.start()
+
 
 
 # MAIN---------------------------------------------------------
@@ -206,36 +197,31 @@ sSocket.listen(4)
 
 while True:
 
-    c = input("Avviare nuova partita? Y/N: ")
+    c = input("Avviare nuova partita? Y/N: ").strip().upper()
     
     if c == 'N':
         break
 
     #ATTESA NUOVI GIOCATORI 
 
-    listaGiocatori = []
-    avvio = False  # reset avvio
-    print("Server in attesa")
+    listaGiocatori.clear()
+    avvio = False
+    print("Server in attesa...\n\n")
 
-    while avvio == False:
-        cSocket, cAddr = sSocket.accept()
-        print(f"Nuovo client da {cAddr}")
-        giocatore_arrivato(cSocket)
-        t = threading.Thread(target=verificaConnessione, args=(cSocket,))
-        t.start()
-        threadGiocatori.append(t)
+    t = threading.Thread(target=accettaGiocatori,args=(sSocket,))
+    t.start()
 
-    for t in threadGiocatori:
-        t.join()
-    threadGiocatori.clear()
+    while avvio==False:
+        time.sleep(40)
+        timerScaduto()
 
+    for g in listaGiocatori:
+        print("inizio gioco")
+        g.sendall("La partita inizia!")
 
+'''
 
     # INIZIO GIOCO
-
-
-
-
 
     # comunichiamo avvio partita
     for g in listaGiocatori:
@@ -322,11 +308,7 @@ while True:
         #GESTIRE VISIONE TAVOLO SE INIZIO PER PRIMO
 
 
-print("Terminando connessini")
+print("Terminando connessioni")
 
 
-
-
-
-
-
+'''
