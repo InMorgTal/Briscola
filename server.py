@@ -210,7 +210,10 @@ while True:
         carteGiocatori[vincitoreTurno]['pila'].append(carte)
     # imposta il vinvitore del turno come primo del successivo
     turno = listaGiocatori.index(vincitoreTurno)
-
+    
+    
+    
+    #GESTIRE VISIONE TAVOLO SE INIZIO PER PRIMO
 
 
         
