@@ -160,7 +160,7 @@ def giocatore_uscito(conn):
     conn.close()
 
 
-def verificaConnessione(conn):
+def verificaConnessione(conn,addr):
     while avvio==False:
        
         conn.sendall(b"Ping")
@@ -168,7 +168,7 @@ def verificaConnessione(conn):
         if not data:
             giocatore_uscito(conn)
             break
-        print(f"{conn}:{data}")
+        print(f"{addr}:{data}")
         time.sleep(1.5)
     conn.sendall(b"Start")
     
@@ -179,7 +179,7 @@ def accettaGiocatori(sSocket):
     while avvio==False:
         cSocket, cAddr = sSocket.accept()
         giocatore_arrivato(cSocket)
-        t = threading.Thread(target=verificaConnessione,args=(cSocket,))
+        t = threading.Thread(target=verificaConnessione,args=(cSocket,cAddr))
         t.start()
 
 
@@ -206,7 +206,7 @@ while True:
 
     listaGiocatori.clear()
     avvio = False
-    print("Server in attesa...\n\n")
+    print("Server in attesa...\n")
 
     t = threading.Thread(target=accettaGiocatori,args=(sSocket,))
     t.start()
