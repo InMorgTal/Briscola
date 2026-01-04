@@ -1,6 +1,6 @@
 
 import socket
-#import threading da  utillizzare con il timer
+import threading
 import random
 
 sSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
