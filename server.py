@@ -191,6 +191,47 @@ def accettaGiocatori(sSocket):
         t = threading.Thread(target=verificaConnessione,args=(cSocket,cAddr))
         t.start()
 
+def calcolaPunteggio():
+    punteggio={}
+    for giocatore in listaGiocatori:
+        punteggio[giocatore] = 0
+    for giocatori in carteGiocatori:
+        for carta in giocatore['pila']:
+            punteggio[giocatore]+=mazzoConfronti[carta]['punti']
+
+    if len(listaGiocatori)==2:
+        vincitore=max(punteggio, key=punteggio.get)
+        punteggio_max = max(punteggio.values())
+        for giocatore in listaGiocatori:
+            giocatore.sendall("il tuo punteggio è: "+punteggio[giocatore])
+            if giocatore==vincitore:
+                giocatore.sendall("Hai vinto, complimenti")
+            else:
+                giocatore.sendall("Il vincitore è: "+vincitore+", con un punteggio di: "+punteggio_max)
+    elif len(listaGiocatori)==4:
+        punti1=0
+        punti2=0
+        for i, giocatori in listaGiocatori:
+            if(i %2==1):
+                punti1+=punteggio[giocatore]
+            elif(i%2==0):
+                punti2+=punteggio[giocatore]
+        punteggio_max=max(punti1, punti2)
+        
+        for i, giocatori in listaGiocatori:
+            if(i %2==1):
+                giocatore.sendall("il tuo punteggio è: "+punti1)
+                if punteggio_max==punti1:
+                    msg=	"Hai vinto, complimenti"
+                else:
+                    msg= "mi dispiace hai perso"
+            elif(i%2==0):
+                giocatore.sendall("il tuo punteggio è: "+punti2)
+                if punteggio_max==punti2:
+                    msg=	"Hai vinto, complimenti"
+                else:
+                    msg= "mi dispiace hai perso"
+            giocatore.sendall(msg)
 
 # MAIN---------------------------------------------------------
 
@@ -323,47 +364,7 @@ while True:
 ##############################################################
 #CALCOLO PUNTEGGIO; è UN PO MACCHINOSO MA DOVREBBE FUNZIONARE
 ############################################################
-
-punteggio={}
-for giocatore in listaGiocatori:
-     punteggio[giocatore] = 0
-for giocatori in carteGiocatori:
-    for carta in giocatore['pila']:
-        punteggio[giocatore]+=mazzoConfronti[carta]['punti']
-
-if len(listaGiocatori)==2:
-    vincitore=max(punteggio, key=punteggio.get)
-    punteggio_max = max(punteggio.values())
-    for giocatore in listaGiocatori:
-        giocatore.sendall("il tuo punteggio è: "+punteggio[giocatore])
-        if giocatore==vincitore:
-            giocatore.sendall("Hai vinto, complimenti")
-        else:
-            giocatore.sendall("Il vincitore è: "+vincitore+", con un punteggio di: "+punteggio_max)
-elif len(listaGiocatori)==4:
-	punti1=0
-	punti2=0
-	for i, giocatori in listaGiocatori:
-		if(i %2==1):
-			punti1+=punteggio[giocatore]
-		elif(i%2==0):
-			punti2+=punteggio[giocatore]
-	punteggio_max=max(punti1, punti2)
-	
-	for i, giocatori in listaGiocatori:
-		if(i %2==1):
-			giocatore.sendall("il tuo punteggio è: "+punti1)
-			if punteggio_max==punti1:
-				msg=	"Hai vinto, complimenti"
-			else:
-				msg= "mi dispiace hai perso"
-		elif(i%2==0):
-			giocatore.sendall("il tuo punteggio è: "+punti2)
-			if punteggio_max==punti2:
-				msg=	"Hai vinto, complimenti"
-			else:
-				msg= "mi dispiace hai perso"
-		giocatore.sendall(msg)
+calcolaPunteggio()
 
 ################### FINE CALCOLO PUNTEGGIO  ######################
 #################################################################
