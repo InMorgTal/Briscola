@@ -70,8 +70,8 @@ while True:
         if parti[0]=="Tavolo":
             print("Tavolo: "+parti[1])
         elif parti[0]=="Your_turn":
-            print("Tavolo: "+parti[1])
-            carta=input("E' il tuo turno...")
+            print("la tua mano: "+parti[1])
+            carta=input("E' il tuo turno, scegli una carta da giocare...")
             cSocket.sendall(carta)
         elif parti[0]=="Fine_turno":
             print("Prende le carte in tavolo "+parti[1]+", che ha vinto il turno")
