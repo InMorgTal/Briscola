@@ -40,11 +40,8 @@ while True:
     
         verificaConnessione(cSocket)
 
-        
-        
 
 
-    '''
     #NO ANCORA GESTITO SUL SERVER(COMUNICAZIONE NUMERO GIOCATORI)
     n=cSocket.recv(1024)
     print("Numero giocatori: ", n.decode())
@@ -70,7 +67,7 @@ while True:
         print(msg.decode())
         #Invio la scelta al server
         scelta=input()
-        cSocket.sendall(scelta)
+        cSocket.sendall(b"",scelta)
         
         #Da gestire: stampa del tavolo dopo che ogni giocatore ha giocato la propria carta
         for i in range (nGiocatori-1):
