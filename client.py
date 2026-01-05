@@ -61,29 +61,21 @@ while True:
     print(briscola.decode())
 
 
-    #DA GESTIRE L'INVIO DELLA MANO---INVIAMO SEMPRE LA MANO COMPLETA,
+    #DA GESTIRE L'INVIO DELLA MANO---INVIAMO SEMPRE LA MANO COMPLETA, da fare
     while True:
-        #Gestire le carte del tavolo sul server per far capire all'utente chi le ha giocate 
-        tavolo=cSocket.recv(1024)#includere nel messaggio del server "Tavolo: "
-        print(tavolo.decode())
-        
-        #ricevo il messaggio per fare una scelta
+        #getsione turno dal ricevimento della mano, ovvero stampa tavolo e giocata carte
         msg=cSocket.recv(1024)
-        print(msg.decode())
-        #Invio la scelta al server
-        scelta=input()
-        cSocket.sendall(b"",scelta)
-        
-        #Da gestire: stampa del tavolo dopo che ogni giocatore ha giocato la propria carta
-        for i in range (nGiocatori-1):
-            tavolofineturno=cSocket.recv(1024)
-            print(tavolo.decode())
+        parti=msg.split(":")
 
-        #Gestire stampa per comunicare il vincitore 
-        #forna: io farei stampare anche quali carte si aggiungono alla pila del vincitore
-        #volendo possiamo non fare la stampa del tavolo a fine turno e fare solo la stampa delle carte prese dal vincitore(e il vincitore)
-        vincitoreTurno=cSocket.recv(1024)
-        print(vincitoreTurno.decode())
+        if parti[0]=="Tavolo":
+            print("Tavolo: "+parti[1])
+        elif parti[0]=="Your_turn":
+            print("Tavolo: "+parti[1])
+            carta=input("E' il tuo turno...")
+            cSocket.sendall(carta)
+        elif parti[0]=="Fine_turno":
+            print("Prende le carte in tavolo "+parti[1]+", che ha vinto il turno")
+
 
 
     #DA GESTIRE ANCORA SUL SERVER(oltre a quello gia scritto):
