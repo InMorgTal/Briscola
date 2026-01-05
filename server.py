@@ -270,14 +270,9 @@ while True:
 
     print("inizio gioco")
 
-'''
+
 
     # INIZIO GIOCO
-
-    # comunichiamo avvio partita
-    for g in listaGiocatori:
-        print("inizio gioco")
-        g.sendall("La partita inizia!")
 
     # mischiamo mazzo
     random.shuffle(mazzo)
@@ -285,10 +280,10 @@ while True:
 
     # creo una lista mano e pila per ogni giocatore e le metto in una lista cartegiocatori
     for giocatore in listaGiocatori:
+        giocatore.sendall(str(len(listaGiocatori)))
         carteGiocatori[giocatore] = {'mano': [], 'pila': []}
 
     # peschiamo briscola e mettiamola in fondo mazzo
-
     mazzo.append(mazzo.pop(0))
     briscola=mazzo[-1][0]
 
@@ -303,18 +298,29 @@ while True:
 
     # inizio il turno di gioco
     turno = 0
-
+    for g in listaGiocatori:
+        mano_msg=",".join(carteGiocatori[g]['mano'])
+        msg="La tua mano e :"+mano_msg+". La briscola e"+briscola
+        g.sendall(msg.encode("utf-8"))
+    
     while True:
         #pesca
         if len(mazzo)!=0 and len(carteGiocatori[turno]['mano'])==2:
-            for _ in listaGiocatori:
+            for g in listaGiocatori:
                 carteGiocatori[turno]['mano'].append(mazzo.pop(0))
                 turno = (turno + 1) % len(listaGiocatori)
+                mano_msg=",".join(carteGiocatori[g]['mano'])
+                msg="Pesca:"+mano_msg
+                g.sendall(msg.encode("utf-8"))
+    
         # gioca turno x ogni giocatore
         for _ in listaGiocatori:
             # invio carte sul tavolo
-            listaGiocatori[turno].sendall(tavolo)
-            listaGiocatori[turno].sendall("Scegli una carta da giocare dalla tua mano")
+            for g in listaGiocatori:
+                msg="Tavolo:"+tavolo
+                g.sendall(msg.encode("utf-8"))
+
+            #RIPRENDERE DA QUI CAPIRE SE USARE TURNO O ALTRO, A DOMANI
             #receive valore carta
             cartaGiocata=listaGiocatori[turno].receive()
             #mette nel tavolo carta come key

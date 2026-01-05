@@ -53,29 +53,25 @@ while True:
     nGiocatori=int(n.decode())
 
     #NON ANCORA GESTITA SUL SERVER(INVIO DELLA MANO AI GIOCTORI)
-    mano=cSocket.recv(1024)#includere nel messaggio del server "ecco la tua mano: "
-    print(mano.decode())
-
-    #NON ANCORA GESTITO SUL SERVER (INVIO DELLA BRISCOLA)
-    briscola=cSocket.recv(1024)#includere nel messaggio del server "briscola: "
-    print(briscola.decode())
-
+    mano_briscola=cSocket.recv(1024)#includere nel messaggio del server "ecco la tua mano: "
+    print(mano_briscola.decode())#e anche la briscola
 
     #DA GESTIRE L'INVIO DELLA MANO---INVIAMO SEMPRE LA MANO COMPLETA, da fare
     while True:
         #getsione turno dal ricevimento della mano, ovvero stampa tavolo e giocata carte
         msg=cSocket.recv(1024)
         parti=msg.split(":")
-
-        if parti[0]=="Tavolo":
-            print("Tavolo: "+parti[1])
-        elif parti[0]=="Your_turn":
-            print("la tua mano: "+parti[1])
-            carta=input("E' il tuo turno, scegli una carta da giocare...")
-            cSocket.sendall(carta)
-        elif parti[0]=="Fine_turno":
-            print("Prende le carte in tavolo "+parti[1]+", che ha vinto il turno")
-
+        match parti[0]:
+            case "Tavolo":
+                print("Tavolo: "+parti[1])
+            case "Your_turn":
+                print("la tua mano: "+parti[1])
+                carta=input("E' il tuo turno, scegli una carta da giocare...")
+                cSocket.sendall(carta)
+            case "Fine_turno":
+                print("Prende le carte in tavolo "+parti[1]+", che ha vinto il turno")
+            case "Pesca":
+                print("Hai pescato una carta, la tua mano e: "+parti[1])
 
 
     #DA GESTIRE ANCORA SUL SERVER(oltre a quello gia scritto):
