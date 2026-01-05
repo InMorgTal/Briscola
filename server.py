@@ -165,7 +165,7 @@ def verificaConnessione(conn,addr):
     while avvio==False:
        
         try:
-            conn.sendall(b"Ping")
+            conn.sendall(b"Connesso")
         except socket.error as e:
             print("Client disconnesso", e)
             giocatore_uscito(conn)
@@ -181,8 +181,7 @@ def verificaConnessione(conn,addr):
             print("Client disconnesso", e)
             giocatore_uscito(conn)
             break
-  
-    
+     
 
 def accettaGiocatori(sSocket):
 
@@ -191,7 +190,6 @@ def accettaGiocatori(sSocket):
         giocatore_arrivato(cSocket)
         t = threading.Thread(target=verificaConnessione,args=(cSocket,cAddr))
         t.start()
-
 
 
 # MAIN---------------------------------------------------------

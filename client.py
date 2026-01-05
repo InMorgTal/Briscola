@@ -13,13 +13,18 @@ def verificaConnessione(conn):
                 if not data:
                     print("Connessione chiusa dal server\n")
                     break
-                if data == "Start":
+                if data == "La partita inizia!":
                     print("il gioco sta iniziando\n")
                     avvio = True
                     break
                 print(f"{data}\n")
-                cSocket.sendall(b"Pong\n")
+                
             except Exception as e:
+                print(f"Errore durante la comunicazione: {e}\n")
+                break
+            try:
+                cSocket.sendall(b"In attesa...")
+            except:
                 print(f"Errore durante la comunicazione: {e}\n")
                 break
 
