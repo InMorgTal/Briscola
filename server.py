@@ -141,7 +141,8 @@ def timerScaduto():
             print("🚀 Parto con 4 client")
             avvio = True
         else:
-            print("numero giocatori invalido, riavvio timer", n)
+            print("numero giocatori invalido, riavvio timer")
+     
            
 def giocatore_arrivato(conn):
 
@@ -163,15 +164,24 @@ def giocatore_uscito(conn):
 def verificaConnessione(conn,addr):
     while avvio==False:
        
-        conn.sendall(b"Ping")
-        data = conn.recv(1024).decode()
-        if not data:
+        try:
+            conn.sendall(b"Ping")
+        except socket.error as e:
+            print("Client disconnesso", e)
             giocatore_uscito(conn)
             break
-        print(f"{addr}:{data}")
-        time.sleep(1.5)
-    conn.sendall(b"Start")
-    
+        try:
+            data = conn.recv(1024).decode()
+            if not data:
+                giocatore_uscito(conn)
+                break
+            print(f"{addr}:{data}")
+            time.sleep(1.5)
+        except(ConnectionResetError, ConnectionAbortedError):
+            print("Client disconnesso", e)
+            giocatore_uscito(conn)
+            break
+  
     
 
 def accettaGiocatori(sSocket):
@@ -212,12 +222,14 @@ while True:
     t.start()
 
     while avvio==False:
-        time.sleep(40)
+        time.sleep(15)
         timerScaduto()
 
     for g in listaGiocatori:
-        print("inizio gioco")
-        g.sendall("La partita inizia!")
+       
+        g.sendall(b"La partita inizia!")
+
+    print("inizio gioco")
 
 '''
 
