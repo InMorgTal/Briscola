@@ -279,7 +279,7 @@ while True:
     t.start()
 
     while avvio==False:
-        time.sleep(35)
+        time.sleep(10)
         timerScaduto()
 
     for g in listaGiocatori:
@@ -326,20 +326,22 @@ while True:
         
     while True:
         #pesca
-        if len(mazzo)!=0 and len(carteGiocatori[turno]['mano'])==2:
+
+        if len(mazzo)!=0 and len(carteGiocatori[listaGiocatori[turno]]['mano'])==2:
             for g in listaGiocatori:
-                carteGiocatori[turno]['mano'].append(mazzo.pop(0))
+                carteGiocatori[listaGiocatori[turno]]['mano'].append(mazzo.pop(0))
                 turno = (turno + 1) % len(listaGiocatori)
                 mano_msg=",".join(carteGiocatori[g]['mano'])
                 msg="Pesca:"+mano_msg
-                g.sendall(msg.encode("utf-8"))
+                invia(g,msg)#GESTIRE IL -1 COME ERRORE
+
     
         # gioca turno x ogni giocatore
         for _ in listaGiocatori:
             # invio carte sul tavolo
             for g in listaGiocatori:
-                msg="Tavolo:"+tavolo
-                g.sendall(msg.encode("utf-8"))
+                msg="Tavolo: ".join(",".join(carte)for carte in tavolo.values())
+                invia(g,msg)#GESTIRE IL -1 COME ERRORE
 
             #RIPRENDERE DA QUI CAPIRE SE USARE TURNO O ALTRO, A DOMANI
             #receive valore carta
