@@ -11,12 +11,55 @@ mazzo_base = [
 ]
 
 mazzoConfronti = {
-    c: {
-        'punti': {1:11, 2:0, 3:10, 4:0, 5:0, 6:0, 7:0, 8:2, 9:3, 10:4}[int(c[1:])],
-        'forza': {1:12, 2:2, 3:11, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10}[int(c[1:])]
-    }
-    for c in mazzo_base
+    # Basti (B)
+    'B1':  {'punti': 11, 'forza': 12},
+    'B2':  {'punti': 0,  'forza': 2},
+    'B3':  {'punti': 10, 'forza': 11},
+    'B4':  {'punti': 0,  'forza': 4},
+    'B5':  {'punti': 0,  'forza': 5},
+    'B6':  {'punti': 0,  'forza': 6},
+    'B7':  {'punti': 0,  'forza': 7},
+    'B8':  {'punti': 2,  'forza': 8},
+    'B9':  {'punti': 3,  'forza': 9},
+    'B10': {'punti': 4,  'forza': 10},
+
+    # Denari (D)
+    'D1':  {'punti': 11, 'forza': 12},
+    'D2':  {'punti': 0,  'forza': 2},
+    'D3':  {'punti': 10, 'forza': 11},
+    'D4':  {'punti': 0,  'forza': 4},
+    'D5':  {'punti': 0,  'forza': 5},
+    'D6':  {'punti': 0,  'forza': 6},
+    'D7':  {'punti': 0,  'forza': 7},
+    'D8':  {'punti': 2,  'forza': 8},
+    'D9':  {'punti': 3,  'forza': 9},
+    'D10': {'punti': 4,  'forza': 10},
+
+    # Coppe (C)
+    'C1':  {'punti': 11, 'forza': 12},
+    'C2':  {'punti': 0,  'forza': 2},
+    'C3':  {'punti': 10, 'forza': 11},
+    'C4':  {'punti': 0,  'forza': 4},
+    'C5':  {'punti': 0,  'forza': 5},
+    'C6':  {'punti': 0,  'forza': 6},
+    'C7':  {'punti': 0,  'forza': 7},
+    'C8':  {'punti': 2,  'forza': 8},
+    'C9':  {'punti': 3,  'forza': 9},
+    'C10': {'punti': 4,  'forza': 10},
+
+    # Spade (S)
+    'S1':  {'punti': 11, 'forza': 12},
+    'S2':  {'punti': 0,  'forza': 2},
+    'S3':  {'punti': 10, 'forza': 11},
+    'S4':  {'punti': 0,  'forza': 4},
+    'S5':  {'punti': 0,  'forza': 5},
+    'S6':  {'punti': 0,  'forza': 6},
+    'S7':  {'punti': 0,  'forza': 7},
+    'S8':  {'punti': 2,  'forza': 8},
+    'S9':  {'punti': 3,  'forza': 9},
+    'S10': {'punti': 4,  'forza': 10},
 }
+
 
 listaGiocatori = []
 carteGiocatori = {}
@@ -157,20 +200,14 @@ while True:
             carteGiocatori[listaGiocatori[turno]]['mano'].append(pescata)
             invia(listaGiocatori[turno], f"Pesca:{','.join(carteGiocatori[listaGiocatori[turno]]['mano'])}")
 
-        tavolo.clear()
-
-        # TURNO DI OGNI GIOCATORE
+        tavolo.clear() 
+           # TURNO DI OGNI GIOCATORE
         for _ in listaGiocatori:
             g = listaGiocatori[turno]
 
-            # Avvisa gli altri
-            for x in listaGiocatori:
-                if x != g:
-                    invia(x, "Attendi_il_tuo_turno")
-
             # Manda la mano al giocatore di turno
             mano = ",".join(carteGiocatori[g]['mano'])
-            invia(g, f"Your_turn:{mano}")
+            invia(g, f"Mano:{mano}")
 
             try:
                 carta = g.recv(1024).decode().strip()
