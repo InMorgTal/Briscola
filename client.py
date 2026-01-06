@@ -1,5 +1,5 @@
 import socket
-
+import time
 #VARIABILI GLOBALI--------------------------------------------
 
 avvio = False
@@ -23,8 +23,8 @@ def verificaConnessione(conn):
                 print(f"Errore durante la comunicazione: {e}\n")
                 break
             try:
-                cSocket.sendall(b"In attesa...")
-            except:
+                cSocket.sendall(b"Connesso")
+            except Exception as e:
                 print(f"Errore durante la comunicazione: {e}\n")
                 break
 
@@ -38,19 +38,25 @@ while True:
     while avvio == False:
 
         print("connettendo al server...\n")
+        try:
 
-        cSocket.connect(("localhost", 1234))
+            cSocket.connect(("localhost", 1234))
+            
+        except Exception as e:
+            print(f"Impossibile connettersi al server: {e}\n")
+            time.sleep(20)
+
 
         print("In attesa che il server avvii la partita...\n")
-    
+
         verificaConnessione(cSocket)
 
 
 
     #NO ANCORA GESTITO SUL SERVER(COMUNICAZIONE NUMERO GIOCATORI)
-    n=cSocket.recv(1024)
-    print("Numero giocatori: ", n.decode())
-    nGiocatori=int(n.decode())
+    n=int(cSocket.recv(1024).decode())
+    print("Numero giocatori: ", n)
+    nGiocatori=n
 
     #NON ANCORA GESTITA SUL SERVER(INVIO DELLA MANO AI GIOCTORI)
     mano_briscola=cSocket.recv(1024)#includere nel messaggio del server "ecco la tua mano: "
@@ -86,4 +92,3 @@ while True:
 
 
 
-'''

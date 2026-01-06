@@ -165,7 +165,7 @@ def verificaConnessione(conn,addr):
     while avvio==False:
        
         try:
-            conn.sendall(b"Connesso")
+            conn.sendall(b"In attesa...")
         except socket.error as e:
             print("Client disconnesso", e)
             giocatore_uscito(conn)
@@ -190,6 +190,7 @@ def accettaGiocatori(sSocket):
         giocatore_arrivato(cSocket)
         t = threading.Thread(target=verificaConnessione,args=(cSocket,cAddr))
         t.start()
+
 
 def calcolaPunteggio():
     punteggio={}
@@ -233,6 +234,23 @@ def calcolaPunteggio():
                     msg= "mi dispiace hai perso"
             giocatore.sendall(msg)
 
+
+def invia(conn,mess):
+    try:
+        conn.sendall(mess.encode())
+    except Exception as e:
+        print(f"Errore durante la comunicazione, partita interrotta:\n")
+        return -1
+    return 0
+
+
+def primaMano():
+    for g in listaGiocatori:
+        mano_msg=",".join(carteGiocatori[g]['mano'])
+        msg="La tua mano e :"+mano_msg+". La briscola e : "+briscola
+        if(invia(g,msg)==-1):
+            return -1
+    return 0
 # MAIN---------------------------------------------------------
 
 sSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -261,12 +279,14 @@ while True:
     t.start()
 
     while avvio==False:
-        time.sleep(15)
+        time.sleep(35)
         timerScaduto()
 
     for g in listaGiocatori:
        
-        g.sendall(b"La partita inizia!")
+       if invia(g,"La partita inizia!")==-1:
+            break
+
 
     print("inizio gioco")
 
@@ -279,9 +299,10 @@ while True:
     random.shuffle(mazzo)
 
     # creo una lista mano e pila per ogni giocatore e le metto in una lista cartegiocatori
-    for giocatore in listaGiocatori:
-        giocatore.sendall(str(len(listaGiocatori)))
-        carteGiocatori[giocatore] = {'mano': [], 'pila': []}
+    for g in listaGiocatori:
+        if invia(g,str(len(listaGiocatori)))==-1:
+            break
+        carteGiocatori[g] = {'mano': [], 'pila': []}
 
     # peschiamo briscola e mettiamola in fondo mazzo
     mazzo.append(mazzo.pop(0))
@@ -298,11 +319,10 @@ while True:
 
     # inizio il turno di gioco
     turno = 0
-    for g in listaGiocatori:
-        mano_msg=",".join(carteGiocatori[g]['mano'])
-        msg="La tua mano e :"+mano_msg+". La briscola e"+briscola
-        g.sendall(msg.encode("utf-8"))
     
+    if primaMano()==-1:
+        continue
+        
     while True:
         #pesca
         if len(mazzo)!=0 and len(carteGiocatori[turno]['mano'])==2:
@@ -378,7 +398,4 @@ calcolaPunteggio()
 
 
 '''
-print("Terminando connessioni")
 
-
-'''
