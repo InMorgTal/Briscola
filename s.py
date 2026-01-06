@@ -1,404 +1,224 @@
-
-
-
-'''
-
-sala d attesa: 
-
-'o 2 o (4 giocatori coppie) '
-
-partita inizia
-
-mescola mazzo
-
-dare 1 carta a testa fino a 3
-
-pesca brisola e mettiamo in fondo mazzo
-
-inizia turno di gioco dal primo della lista
-
-ogni giocatore gioca 1 carta a turno
-
-in base a punteggio carte vanno al vincitore del turno
-
-ciclo:
-
-togliamo carta da mano 
-
-controlliamo se ce briscola
-
-se ce :
-{
-
-entrambe briscole
-{quale vince in base al numero controlliamo se ce 1 (prende) poi se ce 3 quali delle due e maggiore , altrimenti confronto numerico}
-
-altrimenti
-{briscola vince turno}
-
-}
-
-se non ce:
-{
-
-
-
-
-
-
-}
-
-
-'''
-
 import socket
 import threading
 import time
 import random
-#VARIABILI GLOBALI--------------------------------------------
 
-
-mazzo = [
-    'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10',
-    'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10',
-    'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10',
-    'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'
+mazzo_base = [
+    'B1','B2','B3','B4','B5','B6','B7','B8','B9','B10',
+    'D1','D2','D3','D4','D5','D6','D7','D8','D9','D10',
+    'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10',
+    'S1','S2','S3','S4','S5','S6','S7','S8','S9','S10'
 ]
 
 mazzoConfronti = {
-    # Basti (B)
-    'B1':  {'punti': 11, 'forza': 12},
-    'B2':  {'punti': 0,  'forza': 2},
-    'B3':  {'punti': 10, 'forza': 11},
-    'B4':  {'punti': 0,  'forza': 4},
-    'B5':  {'punti': 0,  'forza': 5},
-    'B6':  {'punti': 0,  'forza': 6},
-    'B7':  {'punti': 0,  'forza': 7},
-    'B8':  {'punti': 2,  'forza': 8},
-    'B9':  {'punti': 3,  'forza': 9},
-    'B10': {'punti': 4,  'forza': 10},
-
-    # Denari (D)
-    'D1':  {'punti': 11, 'forza': 12},
-    'D2':  {'punti': 0,  'forza': 2},
-    'D3':  {'punti': 10, 'forza': 11},
-    'D4':  {'punti': 0,  'forza': 4},
-    'D5':  {'punti': 0,  'forza': 5},
-    'D6':  {'punti': 0,  'forza': 6},
-    'D7':  {'punti': 0,  'forza': 7},
-    'D8':  {'punti': 2,  'forza': 8},
-    'D9':  {'punti': 3,  'forza': 9},
-    'D10': {'punti': 4,  'forza': 10},
-
-    # Coppe (C)
-    'C1':  {'punti': 11, 'forza': 12},
-    'C2':  {'punti': 0,  'forza': 2},
-    'C3':  {'punti': 10, 'forza': 11},
-    'C4':  {'punti': 0,  'forza': 4},
-    'C5':  {'punti': 0,  'forza': 5},
-    'C6':  {'punti': 0,  'forza': 6},
-    'C7':  {'punti': 0,  'forza': 7},
-    'C8':  {'punti': 2,  'forza': 8},
-    'C9':  {'punti': 3,  'forza': 9},
-    'C10': {'punti': 4,  'forza': 10},
-
-    # Spade (S)
-    'S1':  {'punti': 11, 'forza': 12},
-    'S2':  {'punti': 0,  'forza': 2},
-    'S3':  {'punti': 10, 'forza': 11},
-    'S4':  {'punti': 0,  'forza': 4},
-    'S5':  {'punti': 0,  'forza': 5},
-    'S6':  {'punti': 0,  'forza': 6},
-    'S7':  {'punti': 0,  'forza': 7},
-    'S8':  {'punti': 2,  'forza': 8},
-    'S9':  {'punti': 3,  'forza': 9},
-    'S10': {'punti': 4,  'forza': 10},
+    c: {
+        'punti': {1:11, 2:0, 3:10, 4:0, 5:0, 6:0, 7:0, 8:2, 9:3, 10:4}[int(c[1:])],
+        'forza': {1:12, 2:2, 3:11, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10}[int(c[1:])]
+    }
+    for c in mazzo_base
 }
 
-tavolo = {}
-
-carteGiocatori = {}
-
 listaGiocatori = []
-
+carteGiocatori = {}
+tavolo = []
 avvio = False
-
-tempo = 15
-
 lock = threading.Lock()
 
-# FUNZIONI-----------------------------------------------------
+def invia(conn, mess):
+    try:
+        conn.sendall(mess.encode())
+        return 0
+    except:
+        return -1
 
-
-def timerScaduto():
-    global avvio
-    with lock:
-        n = len(listaGiocatori)
-        if n == 2:
-            print("⏰ Timeout: parto con 2 client")
-            avvio = True
-        elif n == 4:
-            print("🚀 Parto con 4 client")
-            avvio = True
-        else:
-            print("numero giocatori invalido, riavvio timer")
-     
-           
 def giocatore_arrivato(conn):
-
     with lock:
         listaGiocatori.append(conn)
-        n = len(listaGiocatori)
-        print(f"Giocatore arrivato, tot: {n}")
-
+        print("Giocatore arrivato, tot:", len(listaGiocatori))
 
 def giocatore_uscito(conn):
     with lock:
         if conn in listaGiocatori:
             listaGiocatori.remove(conn)
-            n = len(listaGiocatori)
-            print(f"Giocatore uscito, rimasti: {n}")
+            print("Giocatore uscito, rimasti:", len(listaGiocatori))
     conn.close()
 
+def timerScaduto():
+    global avvio
+    with lock:
+        n = len(listaGiocatori)
+        if n in (2, 4):
+            print("⏱ Timeout: parto con", n, "client")
+            avvio = True
+        else:
+            print("Numero giocatori invalido, riavvio timer")
 
-def verificaConnessione(conn,addr):
-    while avvio==False:
-       
+def verificaConnessione(conn, addr):
+    global avvio
+    while not avvio:
         try:
             conn.sendall(b"In attesa...")
-        except socket.error as e:
-            print("Client disconnesso", e)
+        except:
             giocatore_uscito(conn)
             break
+
         try:
-            data = conn.recv(1024).decode()
+            data = conn.recv(1024).decode().strip()
             if not data:
                 giocatore_uscito(conn)
                 break
-            print(f"{addr}:{data}")
-            time.sleep(1.5)
-        except(ConnectionResetError, ConnectionAbortedError):
-            print("Client disconnesso", e)
+        except:
             giocatore_uscito(conn)
             break
-     
+
+        time.sleep(1.5)
 
 def accettaGiocatori(sSocket):
-
-    while avvio==False:
+    global avvio
+    while not avvio:
         cSocket, cAddr = sSocket.accept()
         giocatore_arrivato(cSocket)
-        t = threading.Thread(target=verificaConnessione,args=(cSocket,cAddr))
-        t.start()
-
+        threading.Thread(target=verificaConnessione, args=(cSocket, cAddr)).start()
 
 def calcolaPunteggio():
-    punteggio={}
-    for giocatore in listaGiocatori:
-        punteggio[giocatore] = 0
-    for giocatori in carteGiocatori:
-        for carta in giocatore['pila']:
-            punteggio[giocatore]+=mazzoConfronti[carta]['punti']
-
-    if len(listaGiocatori)==2:
-        vincitore=max(punteggio, key=punteggio.get)
-        punteggio_max = max(punteggio.values())
-        for giocatore in listaGiocatori:
-            giocatore.sendall("il tuo punteggio è: "+punteggio[giocatore])
-            if giocatore==vincitore:
-                giocatore.sendall("Hai vinto, complimenti")
-            else:
-                giocatore.sendall("Il vincitore è: "+vincitore+", con un punteggio di: "+punteggio_max)
-    elif len(listaGiocatori)==4:
-        punti1=0
-        punti2=0
-        for i, giocatori in listaGiocatori:
-            if(i %2==1):
-                punti1+=punteggio[giocatore]
-            elif(i%2==0):
-                punti2+=punteggio[giocatore]
-        punteggio_max=max(punti1, punti2)
-        
-        for i, giocatori in listaGiocatori:
-            if(i %2==1):
-                giocatore.sendall("il tuo punteggio è: "+punti1)
-                if punteggio_max==punti1:
-                    msg=	"Hai vinto, complimenti"
-                else:
-                    msg= "mi dispiace hai perso"
-            elif(i%2==0):
-                giocatore.sendall("il tuo punteggio è: "+punti2)
-                if punteggio_max==punti2:
-                    msg=	"Hai vinto, complimenti"
-                else:
-                    msg= "mi dispiace hai perso"
-            giocatore.sendall(msg)
-
-
-def invia(conn,mess):
-    try:
-        conn.sendall(mess.encode())
-    except Exception as e:
-        print(f"Errore durante la comunicazione, partita interrotta:\n")
-        return -1
-    return 0
-
-
-def primaMano():
+    punteggio = {g: 0 for g in listaGiocatori}
     for g in listaGiocatori:
-        mano_msg=",".join(carteGiocatori[g]['mano'])
-        msg="La tua mano e :"+mano_msg+". La briscola e : "+briscola
-        if(invia(g,msg)==-1):
-            return -1
+        for carta in carteGiocatori[g]['pila']:
+            punteggio[g] += mazzoConfronti[carta]['punti']
+
+    vincitore = max(punteggio, key=punteggio.get)
+    maxpunti = punteggio[vincitore]
+
+    for g in listaGiocatori:
+        invia(g, f"Il tuo punteggio è: {punteggio[g]}")
+        if g == vincitore:
+            invia(g, "Hai vinto, complimenti!")
+        else:
+            invia(g, f"Il vincitore ha totalizzato {maxpunti} punti.")
+
+def primaMano(briscola):
+    for g in listaGiocatori:
+        mano = ",".join(carteGiocatori[g]['mano'])
+        invia(g, f"Your_turn:{mano}")
+        invia(g, f"Briscola:{briscola}")
     return 0
-# MAIN---------------------------------------------------------
 
 sSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
 sSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
 sSocket.bind(("localhost", 1234))
-
 sSocket.listen(4)
 
-
 while True:
-
     c = input("Avviare nuova partita? Y/N: ").strip().upper()
-    
-    if c == 'N':
+    if c == "N":
         break
 
-    #ATTESA NUOVI GIOCATORI 
-
     listaGiocatori.clear()
+    carteGiocatori.clear()
+    tavolo.clear()
     avvio = False
+
     print("Server in attesa...\n")
+    threading.Thread(target=accettaGiocatori, args=(sSocket,)).start()
 
-    t = threading.Thread(target=accettaGiocatori,args=(sSocket,))
-    t.start()
-
-    while avvio==False:
-        time.sleep(10)
+    while not avvio:
+        time.sleep(5)
         timerScaduto()
 
     for g in listaGiocatori:
-       
-       if invia(g,"La partita inizia!")==-1:
-            break
-
-
-    print("inizio gioco")
-
-
-
-    # INIZIO GIOCO
-
-    # mischiamo mazzo
-    random.shuffle(mazzo)
-    random.shuffle(mazzo)
-
-
-    # creo una lista mano e pila per ogni giocatore e le metto in una lista cartegiocatori
+        invia(g, "La partita inizia!")
     for g in listaGiocatori:
-        if invia(g,str(len(listaGiocatori)))==-1:
-            break
+        invia(g, str(len(listaGiocatori)))
+
+    print("Inizio gioco")
+
+    mazzo = mazzo_base.copy()
+    random.shuffle(mazzo)
+    random.shuffle(mazzo)
+
+    for g in listaGiocatori:
         carteGiocatori[g] = {'mano': [], 'pila': []}
 
-    # peschiamo briscola e mettiamola in fondo mazzo
     mazzo.append(mazzo.pop(0))
-    briscola=mazzo[-1][0]
+    briscola = mazzo[-1][0]
 
+    for _ in range(3):
+        for g in listaGiocatori:
+            carteGiocatori[g]['mano'].append(mazzo.pop(0))
 
-    # estraggo una carta alla volta dal mazzo per ogni mano, fino a quando ogni mano e' composta da 3 carte
-
-    for i in range (3):
-        for giocatore in listaGiocatori:
-            carteGiocatori[giocatore]['mano'].append(mazzo.pop(0))
-
-
-
-    # inizio il turno di gioco
     turno = 0
-    
-    if primaMano()==-1:
-        continue
-        
+    primaMano(briscola)
+
     while True:
-        #pesca
 
-        if len(mazzo)!=0 and len(carteGiocatori[listaGiocatori[turno]]['mano'])==2:
-            for g in listaGiocatori:
-                carteGiocatori[listaGiocatori[turno]]['mano'].append(mazzo.pop(0))
-                turno = (turno + 1) % len(listaGiocatori)
-                mano_msg=",".join(carteGiocatori[g]['mano'])
-                msg="Pesca:"+mano_msg
-                invia(g,msg)#GESTIRE IL -1 COME ERRORE
+        # PESCA
+        if len(mazzo) > 0 and len(carteGiocatori[listaGiocatori[turno]]['mano']) == 2:
+            pescata = mazzo.pop(0)
+            carteGiocatori[listaGiocatori[turno]]['mano'].append(pescata)
+            invia(listaGiocatori[turno], f"Pesca:{','.join(carteGiocatori[listaGiocatori[turno]]['mano'])}")
 
-    
-        # gioca turno x ogni giocatore
+        tavolo.clear()
+
+        # TURNO DI OGNI GIOCATORE
         for _ in listaGiocatori:
-            # invio carte sul tavolo
-            for g in listaGiocatori:
-                msg="Tavolo: ".join(",".join(carte)for carte in tavolo.values())
-                invia(g,msg)#GESTIRE IL -1 COME ERRORE
+            g = listaGiocatori[turno]
 
-            #RIPRENDERE DA QUI CAPIRE SE USARE TURNO O ALTRO, A DOMANI
-            #receive valore carta
-            cartaGiocata=listaGiocatori[turno].receive()
-            #mette nel tavolo carta come key
-            tavolo[cartaGiocata] = listaGiocatori[turno]
-            carteGiocatori[giocatore]['mano'].remove(cartaGiocata)
-            # cambio turno x giocatore successivo
+            # Avvisa gli altri
+            for x in listaGiocatori:
+                if x != g:
+                    invia(x, "Attendi_il_tuo_turno")
+
+            # Manda la mano al giocatore di turno
+            mano = ",".join(carteGiocatori[g]['mano'])
+            invia(g, f"Your_turn:{mano}")
+
+            try:
+                carta = g.recv(1024).decode().strip()
+            except:
+                giocatore_uscito(g)
+                break
+
+            if carta not in carteGiocatori[g]['mano']:
+                invia(g, "Carta non valida, riprova.")
+                continue  # NON avanza il turno
+
+            tavolo.append((carta, g))
+            carteGiocatori[g]['mano'].remove(carta)
+
+            for x in listaGiocatori:
+                invia(x, "Tavolo:" + ",".join(c for c, _ in tavolo))
+
             turno = (turno + 1) % len(listaGiocatori)
 
-        
-        vincente = tavolo[0][0]
+        # DETERMINA VINCITORE DEL TURNO
+        if len(tavolo) == len(listaGiocatori):
+            vincente, vincitoreTurno = tavolo[0]
+            seme_vincente = vincente[0]
 
-        for carta in tavolo[1:]:
-            s_vincente = vincente[0]
-            s_carta = carta[0]
-
-            # Se vincente è briscola e carta no, vincente resta
-            if s_vincente == briscola and s_carta != briscola:
-                continue
-
-            # Se carta è briscola e vincente no, carta diventa vincente
-            elif s_carta == briscola and s_vincente != briscola:
-                vincente = carta
-
-            # Se stesso seme, confronta forza
-            elif s_carta == s_vincente:
-                if mazzoConfronti[carta]['forza'] > mazzoConfronti[vincente]['forza']:
+            for carta, gioc in tavolo[1:]:
+                seme_carta = carta[0]
+                if seme_vincente == briscola and seme_carta != briscola:
+                    continue
+                elif seme_carta == briscola and seme_vincente != briscola:
                     vincente = carta
+                    seme_vincente = seme_carta
+                elif seme_carta == seme_vincente:
+                    if mazzoConfronti[carta]['forza'] > mazzoConfronti[vincente]['forza']:
+                        vincente = carta
 
-            # Se semi diversi e nessuna briscola, vincente resta (prima carta vince)
-            else:
-                continue
-        print("Carta vincente:", vincente)
-        #trovo il giocatore vincente e gli assegno le carte nella pila
-        vincitoreTurno=tavolo[vincente]
-        for carte in tavolo:
-            carteGiocatori[vincitoreTurno]['pila'].append(carte)
-        # imposta il vinvitore del turno come primo del successivo
-        turno = listaGiocatori.index(vincitoreTurno)
-        
-        
-        
-        #GESTIRE VISIONE TAVOLO SE INIZIO PER PRIMO
+            for carta, gioc in tavolo:
+                if carta == vincente:
+                    vincitoreTurno = gioc
+                    break
 
-        
-'''
+            for carta, _ in tavolo:
+                carteGiocatori[vincitoreTurno]['pila'].append(carta)
 
-##############################################################
-#CALCOLO PUNTEGGIO; è UN PO MACCHINOSO MA DOVREBBE FUNZIONARE
-############################################################
-calcolaPunteggio()
+            for g in listaGiocatori:
+                invia(g, f"Fine_turno:{listaGiocatori.index(vincitoreTurno)}")
 
-################### FINE CALCOLO PUNTEGGIO  ######################
-#################################################################
+            turno = listaGiocatori.index(vincitoreTurno)
 
-
-
-'''
-
+            if all(len(carteGiocatori[g]['mano']) == 0 for g in listaGiocatori):
+                calcolaPunteggio()
+                break
