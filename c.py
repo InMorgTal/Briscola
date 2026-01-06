@@ -1,105 +1,94 @@
 import socket
 import time
+#VARIABILI GLOBALI--------------------------------------------
 
 avvio = False
 
+# FUNZIONI-----------------------------------------------------
+
 def verificaConnessione(conn):
-    global avvio
-    while True:
-        try:
-            data = conn.recv(1024).decode().strip()
-            if not data:
-                print("Connessione chiusa dal server\n")
-                break
-
-            if data == "La partita inizia!":
-                print("Il gioco sta iniziando...\n")
-                avvio = True
-                break
-
-            print(f"{data}\n")
-
-        except Exception as e:
-            print(f"Errore durante la comunicazione: {e}\n")
-            break
-
-        try:
-            conn.sendall(b"Connesso")
-        except Exception as e:
-            print(f"Errore durante la comunicazione: {e}\n")
-            break
-
-
-def main():
-    cSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    while True:
-        global avvio
-        avvio = False
-
-        while not avvio:
-            print("Connettendo al server...\n")
-            try:
-                cSocket.connect(("localhost", 1234))
-            except Exception as e:
-                print(f"Errore: {e}  Attendi per riprovare...\n")
-                time.sleep(5)
-                continue
-
-            print("In attesa che il server avvii la partita...\n")
-            verificaConnessione(cSocket)
-
-        # Ricevo numero giocatori
-        n = int(cSocket.recv(1024).decode())
-        print(f"Numero giocatori: {n}\n")
-
-        # Ricevo mano iniziale + briscola
-        mano_briscola = cSocket.recv(1024).decode()
-        print(mano_briscola)
-
-        # Ciclo di gioco
         while True:
             try:
-                msg = cSocket.recv(1024).decode()
-                if not msg:
-                    print("Connessione chiusa dal server")
+                data = cSocket.recv(1024).decode().strip()
+                if not data:
+                    print("Connessione chiusa dal server\n")
                     break
-
-                parti = msg.split(":", 1)
-
-                comando = parti[0]
-                contenuto = parti[1] if len(parti) > 1 else ""
-
-                if comando == "Tavolo":
-                    print(f"Tavolo: {contenuto}\n")
-
-                elif comando == "Your_turn":
-                    print(f"La tua mano: {contenuto}")
-                    carta = ""
-                    mano = contenuto.split(",")
-                    while True:
-                        carta = input("È il tuo turno, scegli una carta da giocare: ").strip()
-                        if carta in mano:
-                            break
-                        print("Carta non valida, riprova.")
-                    cSocket.sendall(carta.encode())
-
-                elif comando == "Fine_turno":
-                    print(f"Prende le carte in tavolo {contenuto}, che ha vinto il turno\n")
-
-                elif comando == "Pesca":
-                    print(f"Hai pescato una carta, la tua mano è: {contenuto}\n")
-
-                else:
-                    print(f"Messaggio dal server: {msg}")
-
+                if data == "La partita inizia!":
+                    print("il gioco sta iniziando\n")
+                    avvio = True
+                    break
+                print(f"{data}\n")
+                
+            except Exception as e:
+                print(f"Errore durante la comunicazione: {e}\n")
+                break
+            try:
+                cSocket.sendall(b"Connesso")
             except Exception as e:
                 print(f"Errore durante la comunicazione: {e}\n")
                 break
 
-        cSocket.close()
-        break
+# MAIN---------------------------------------------------------
+
+cSocket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+while True:
+    avvio = False
+
+    while avvio == False:
+
+        print("connettendo al server...\n")
+        try:
+
+            cSocket.connect(("localhost", 1234))
+            
+        except Exception as e:
+            print(f"Impossibile connettersi al server: {e}\n")
+            time.sleep(20)
 
 
-if __name__ == "__main__":
-    main()
+        print("In attesa che il server avvii la partita...\n")
+
+        verificaConnessione(cSocket)
+
+
+
+    #NO ANCORA GESTITO SUL SERVER(COMUNICAZIONE NUMERO GIOCATORI)
+    n=int(cSocket.recv(1024).decode())
+    print("Numero giocatori: ", n)
+    nGiocatori=n
+
+    #NON ANCORA GESTITA SUL SERVER(INVIO DELLA MANO AI GIOCTORI)
+    mano_briscola=cSocket.recv(1024)#includere nel messaggio del server "ecco la tua mano: "
+    print(mano_briscola.decode())#e anche la briscola
+
+    #DA GESTIRE L'INVIO DELLA MANO---INVIAMO SEMPRE LA MANO COMPLETA, da fare
+    while True:
+        #getsione turno dal ricevimento della mano, ovvero stampa tavolo e giocata carte
+        msg=cSocket.recv(1024)
+        parti=msg.split(":")
+        match parti[0]:
+            case "Tavolo":
+                print("Tavolo: "+parti[1])
+            case "Your_turn":
+                print("la tua mano: "+parti[1])
+                carta=input("E' il tuo turno, scegli una carta da giocare...")
+                cSocket.sendall(carta)
+            case "Fine_turno":
+                print("Prende le carte in tavolo "+parti[1]+", che ha vinto il turno")
+            case "Pesca":
+                print("Hai pescato una carta, la tua mano e: "+parti[1])
+
+
+    #DA GESTIRE ANCORA SUL SERVER(oltre a quello gia scritto):
+
+        #-Stabilire il vincitore della partita, e comunicarlo
+        #-Attesa(lo sta facendo morgan)
+        #-Passaggio da una partita finita a una nuova
+        #altro??
+
+
+
+
+
+
