@@ -298,6 +298,7 @@ while True:
     random.shuffle(mazzo)
     random.shuffle(mazzo)
 
+
     # creo una lista mano e pila per ogni giocatore e le metto in una lista cartegiocatori
     for g in listaGiocatori:
         if invia(g,str(len(listaGiocatori)))==-1:
