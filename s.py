@@ -62,15 +62,23 @@ mazzoConfronti = {
 
 
 listaGiocatori = []
-carteGiocatori = {}
-tavolo = []
+
 avvio = False
+
 lock = threading.Lock()
 
+def ricevi(conn):
+    try:
+        data = conn.recv(1024).decode().strip()
+        if not data:
+            return -1
+        return data
+    except:
+        return -1
+        
 def invia(conn, mess):
     try:
         conn.sendall(mess.encode())
-        return 0
     except:
         return -1
 
@@ -123,7 +131,7 @@ def accettaGiocatori(sSocket):
         giocatore_arrivato(cSocket)
         threading.Thread(target=verificaConnessione, args=(cSocket, cAddr)).start()
 
-def calcolaPunteggio():
+def calcolaPunteggioPartita(carteGiocatori):
     punteggio = {g: 0 for g in listaGiocatori}
     for g in listaGiocatori:
         for carta in carteGiocatori[g]['pila']:
@@ -139,34 +147,44 @@ def calcolaPunteggio():
         else:
             invia(g, f"Il vincitore ha totalizzato {maxpunti} punti.")
 
-def primaMano(briscola):
+def calcolaVincitoreTurno(tavolo,briscola):
+    # DETERMINA VINCITORE DEL TURNO
+
+    carta_vincente = list(tavolo.keys())[0]
+
+    seme_vincente = carta_vincente[0]
+
+    for carta in list(tavolo.keys())[1:]:
+        seme_carta = carta[0]
+        if seme_vincente == briscola and seme_carta != briscola:
+            continue
+        elif seme_carta == briscola and seme_vincente != briscola:
+            carta_vincente = carta
+            seme_vincente = seme_carta
+        elif seme_carta == seme_vincente and mazzoConfronti[carta]['forza'] > mazzoConfronti[carta_vincente]['forza']:
+            carta_vincente = carta
+    
+    return carta_vincente
+
+
+def calcolaPunteggioTurno(tavolo):
+    punteggio = 0
+    for carta in tavolo.keys():
+        punteggio += mazzoConfronti[carta]['punti']
+    return punteggio
+
+
+def partita(listaGiocatori):
+
+    carteGiocatori = {}
+
     for g in listaGiocatori:
-        mano = ",".join(carteGiocatori[g]['mano'])
-        invia(g, f"Your_turn:{mano}")
-        invia(g, f"Briscola:{briscola}")
-    return 0
+        carteGiocatori[g] = {
+            'mano': [],
+            'pila': 0
+        }
 
-sSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sSocket.bind(("localhost", 1234))
-sSocket.listen(4)
-
-while True:
-    c = input("Avviare nuova partita? Y/N: ").strip().upper()
-    if c == "N":
-        break
-
-    listaGiocatori.clear()
-    carteGiocatori.clear()
-    tavolo.clear()
-    avvio = False
-
-    print("Server in attesa...\n")
-    threading.Thread(target=accettaGiocatori, args=(sSocket,)).start()
-
-    while not avvio:
-        time.sleep(5)
-        timerScaduto()
+    tavolo = {}
 
     for g in listaGiocatori:
         invia(g, "La partita inizia!")
@@ -176,86 +194,86 @@ while True:
     print("Inizio gioco")
 
     mazzo = mazzo_base.copy()
+
     random.shuffle(mazzo)
     random.shuffle(mazzo)
 
     for g in listaGiocatori:
         carteGiocatori[g] = {'mano': [], 'pila': []}
 
-    mazzo.append(mazzo.pop(0))
-    briscola = mazzo[-1][0]
+    mazzo.append(mazzo.pop(0))#prendo briscola da sopra mazzo 
+    briscola = mazzo[-1][0]# metto la briscola in fondo mazzo
 
-    for _ in range(3):
+    for _ in range(3):#come nella briscola vera do una carta a testa per tre volte dal mazzo
         for g in listaGiocatori:
             carteGiocatori[g]['mano'].append(mazzo.pop(0))
 
     turno = 0
-    primaMano(briscola)
 
     while True:
 
-        # PESCA
-        if len(mazzo) > 0 and len(carteGiocatori[listaGiocatori[turno]]['mano']) == 2:
-            pescata = mazzo.pop(0)
-            carteGiocatori[listaGiocatori[turno]]['mano'].append(pescata)
-            invia(listaGiocatori[turno], f"Pesca:{','.join(carteGiocatori[listaGiocatori[turno]]['mano'])}")
+        tavolo.clear()
 
-        tavolo.clear() 
-           # TURNO DI OGNI GIOCATORE
+        # peschiamo se necessario
+        if len(mazzo) > 0 and len(carteGiocatori[listaGiocatori[turno]]['mano']) < 3:
+            for g in listaGiocatori:
+                carteGiocatori[g]['mano'].append(mazzo.pop(0))
+
+
+        # turno dei giocatori
         for _ in listaGiocatori:
-            g = listaGiocatori[turno]
 
-            # Manda la mano al giocatore di turno
-            mano = ",".join(carteGiocatori[g]['mano'])
-            invia(g, f"Mano:{mano}")
+             #prendiamo il giocatore che iniziera il turno che si decide a fine round o a inizio partita dal primo
+            g = listaGiocatori[turno] 
 
-            try:
-                carta = g.recv(1024).decode().strip()
-            except:
-                giocatore_uscito(g)
-                break
-
-            if carta not in carteGiocatori[g]['mano']:
-                invia(g, "Carta non valida, riprova.")
-                continue  # NON avanza il turno
-
-            tavolo.append((carta, g))
-            carteGiocatori[g]['mano'].remove(carta)
-
+            # Invia turno briscola tavolo e mano
             for x in listaGiocatori:
-                invia(x, "Tavolo:" + ",".join(c for c, _ in tavolo))
+                invia(x, f"Turno del giocatore {listaGiocatori.index(g)+1} \nBriscola: {briscola} Tavolo: {",".join(tavolo.keys)} \nMano: {",".join(carteGiocatori[x]['mano'])}\n")
+
+            carta = ricevi(g) # prendiamo la carta giocata dal giocatore (controlli lato client)
+
+            tavolo[carta]= [g]# aggiungiamo carta al tavolo associata al giocatore
+
+            carteGiocatori[g]['mano'].remove(carta)
 
             turno = (turno + 1) % len(listaGiocatori)
 
-        # DETERMINA VINCITORE DEL TURNO
-        if len(tavolo) == len(listaGiocatori):
-            vincente, vincitoreTurno = tavolo[0]
-            seme_vincente = vincente[0]
+        vincitore=tavolo[calcolaVincitoreTurno(tavolo, briscola)]
+        
+        
 
-            for carta, gioc in tavolo[1:]:
-                seme_carta = carta[0]
-                if seme_vincente == briscola and seme_carta != briscola:
-                    continue
-                elif seme_carta == briscola and seme_vincente != briscola:
-                    vincente = carta
-                    seme_vincente = seme_carta
-                elif seme_carta == seme_vincente:
-                    if mazzoConfronti[carta]['forza'] > mazzoConfronti[vincente]['forza']:
-                        vincente = carta
+        carteGiocatori[vincitore]['pila']+= calcolaPunteggioTurno(tavolo)
 
-            for carta, gioc in tavolo:
-                if carta == vincente:
-                    vincitoreTurno = gioc
-                    break
+        for x in listaGiocatori:
+            invia(x, f"Il vincitore del round e' il giocatore {listaGiocatori.index(vincitore)+1}, totalizzando {carteGiocatori[vincitore]['pila']} punti\n")
 
-            for carta, _ in tavolo:
-                carteGiocatori[vincitoreTurno]['pila'].append(carta)
 
-            for g in listaGiocatori:
-                invia(g, f"Fine_turno:{listaGiocatori.index(vincitoreTurno)}")
+        
 
-            turno = listaGiocatori.index(vincitoreTurno)
 
-            if all(len(carteGiocatori[g]['mano']) == 0 for g in listaGiocatori):
-                calcolaPunteggio()
-                break
+
+sSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sSocket.bind(("localhost", 1234))
+sSocket.listen(4)
+
+while True:
+    c = input("Avviare nuova partita? *Y/N: ").strip().upper()
+    if c == "N":
+        break
+
+    listaGiocatori.clear()
+    
+    avvio = False
+
+    print("Server in attesa...\n")
+    threading.Thread(target=accettaGiocatori, args=(sSocket,)).start()
+
+    while not avvio:
+        time.sleep(10)
+        timerScaduto()
+
+
+    partita(listaGiocatori)
+
+    
