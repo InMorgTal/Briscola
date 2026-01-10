@@ -132,21 +132,31 @@ def accettaGiocatori(sSocket):
         threading.Thread(target=verificaConnessione, args=(cSocket, cAddr)).start()
 
 def calcolaPunteggioPartita(carteGiocatori):
-    punteggio = {g: 0 for g in listaGiocatori}
-    for g in listaGiocatori:
-        for carta in carteGiocatori[g]['pila']:
-            punteggio[g] += mazzoConfronti[carta]['punti']
+    
+    vincitore = listaGiocatori[0]
 
-    vincitore = max(punteggio, key=punteggio.get)
-    maxpunti = punteggio[vincitore]
+    if len(listaGiocatori)==4: # se sono 4 gioctatori faccio la somma a squadre
+        punteggioSquadra1 = carteGiocatori[listaGiocatori[0]]['pila'] + carteGiocatori[listaGiocatori[2]]['pila']
+        punteggioSquadra2 = carteGiocatori[listaGiocatori[1]]['pila'] + carteGiocatori[listaGiocatori[3]]['pila']
 
-    for g in listaGiocatori:
-        invia(g, f"Il tuo punteggio è: {punteggio[g]}")
-        if g == vincitore:
-            invia(g, "Hai vinto, complimenti!")
-        else:
-            invia(g, f"Il vincitore ha totalizzato {maxpunti} punti.")
+        if punteggioSquadra1 > punteggioSquadra2:
+            for g in listaGiocatori:
+                invia(g,f"Hai totalizzato {carteGiocatori[g]['pila']} punti, Squadra di G1 e G2 vince! con {punteggioSquadra1} punti!\n")
 
+            return
+        for g in listaGiocatori:
+                invia(g,f"Hai totalizzato {carteGiocatori[g]['pila']} punti, Squadra di G2 e G4 vince! con {punteggioSquadra2} punti!\n")
+ 
+    else:   # altrimenti controllo il singolo vincitore
+            
+        for g in carteGiocatori:
+            if carteGiocatori[g]['pila'] > carteGiocatori[vincitore]['pila']:
+                vincitore = g
+            
+        for g in listaGiocatori:
+            invia(g, f"Hai totalizzato {carteGiocatori[g]['pila']} punti, il vincitore della partita e' il giocatore {listaGiocatori.index(vincitore)+1} con {carteGiocatori[vincitore]['pila']} punti!\n")
+            return 
+        
 def calcolaVincitoreTurno(tavolo,briscola):
     # DETERMINA VINCITORE DEL TURNO
 
@@ -166,15 +176,21 @@ def calcolaVincitoreTurno(tavolo,briscola):
     
     return carta_vincente
 
-
 def calcolaPunteggioTurno(tavolo):
     punteggio = 0
     for carta in tavolo.keys():
         punteggio += mazzoConfronti[carta]['punti']
     return punteggio
 
+def isPartitaFinita(listaGiocatori, carteGiocatori):
+    for g in listaGiocatori:
+        if len(carteGiocatori[g]['mano']) != 0:
+            return False  # Almeno un giocatore ha ancora carte
+    return True  # Tutti hanno finito le carte
 
 def partita(listaGiocatori):
+
+    Fine = False
 
     carteGiocatori = {}
 
@@ -210,7 +226,7 @@ def partita(listaGiocatori):
 
     turno = 0
 
-    while True:
+    while Fine == False:
 
         tavolo.clear()
 
@@ -247,7 +263,10 @@ def partita(listaGiocatori):
         for x in listaGiocatori:
             invia(x, f"Il vincitore del round e' il giocatore {listaGiocatori.index(vincitore)+1}, totalizzando {carteGiocatori[vincitore]['pila']} punti\n")
 
+        if isPartitaFinita(listaGiocatori, carteGiocatori)== True:
+            Fine = True
 
+    calcolaPunteggioPartita(carteGiocatori)
         
 
 
