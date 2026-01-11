@@ -372,7 +372,7 @@ def main():
         threading.Thread(target=accettaGiocatori, args=(sSocket,)).start()
 
         while not avvio:
-            time.sleep(10)
+            time.sleep(20)  # Attesa 20 secondi per connessioni
             timerScaduto()
 
         partita(listaGiocatori)
