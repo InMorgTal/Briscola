@@ -147,31 +147,49 @@ def accettaGiocatori(sSocket):
     sSocket.settimeout(None)  # Rimetto modalità bloccante (opzionale)
     
 def calcolaPunteggioPartita(carteGiocatori):
-    
-    vincitore = listaGiocatori[0]
+    giocatori = list(carteGiocatori.keys())
 
-    if len(listaGiocatori)==4: # se sono 4 gioctatori faccio la somma a squadre
-        punteggioSquadra1 = carteGiocatori[listaGiocatori[0]]['pila'] + carteGiocatori[listaGiocatori[2]]['pila']
-        punteggioSquadra2 = carteGiocatori[listaGiocatori[1]]['pila'] + carteGiocatori[listaGiocatori[3]]['pila']
+    # 4 giocatori: somma per squadre (G1+G3 contro G2+G4)
+    if len(giocatori) == 4:
+        punti_g1 = carteGiocatori[giocatori[0]]['pila']
+        punti_g2 = carteGiocatori[giocatori[1]]['pila']
+        punti_g3 = carteGiocatori[giocatori[2]]['pila']
+        punti_g4 = carteGiocatori[giocatori[3]]['pila']
 
-        if punteggioSquadra1 > punteggioSquadra2:
-            for g in listaGiocatori:
-                invia(g,f"Hai totalizzato {carteGiocatori[g]['pila']} punti, Squadra di G1 e G2 vince! con {punteggioSquadra1} punti!\n")
+        puntiS1 = punti_g1 + punti_g3  # G1 e G3
+        puntiS2 = punti_g2 + punti_g4  # G2 e G4
 
-            return
-        for g in listaGiocatori:
-                invia(g,f"Hai totalizzato {carteGiocatori[g]['pila']} punti, Squadra di G2 e G4 vince! con {punteggioSquadra2} punti!\n")
- 
-    else:   # altrimenti controllo il singolo vincitore
-            
-        for g in carteGiocatori:
-            if carteGiocatori[g]['pila'] > carteGiocatori[vincitore]['pila']:
-                vincitore = g
-            
-        for g in listaGiocatori:
-            invia(g, f"Hai totalizzato {carteGiocatori[g]['pila']} punti, il vincitore della partita e' il giocatore {listaGiocatori.index(vincitore)+1} con {carteGiocatori[vincitore]['pila']} punti!\n")
-        return 
+        if puntiS1 > puntiS2:
+            msg = f"Partita terminata.\nLa squadra di G1 e G3 vince con {puntiS1} punti!"
+            print("la squadra di G1 e G3 vince con", puntiS1, "punti!")
+        elif puntiS2 > puntiS1:
+            msg = f"Partita terminata.\nLa squadra di G2 e G4 vince con {puntiS2} punti!"
+            print("la squadra di G2 e G4 vince con", puntiS2, "punti!")
+        else:
+            msg = f"Partita terminata.\nPareggio! Squadra 1: {puntiS1} punti, Squadra 2: {puntiS2} punti."
+            print("Pareggio! Squadra 1:", puntiS1, "punti, Squadra 2:", puntiS2, "punti.")
+
+        for g in giocatori:
+            invia(g, f"Hai totalizzato {carteGiocatori[g]['pila']} punti. {msg}\n")
+            print("Il giocatore", giocatori.index(g)+1, "ha totalizzato", carteGiocatori[g]['pila'], "punti.")
+        return
+
+    # 2 giocatori: singolo vincitore
+    vincitore = giocatori[0]
+    for g in giocatori:
+        if carteGiocatori[g]['pila'] > carteGiocatori[vincitore]['pila']:
+            vincitore = g
+
+    for g in giocatori:
+        invia(g,
+            f"Partita terminata.\nHai totalizzato {carteGiocatori[g]['pila']} punti. "
+            f"Il vincitore della partita è il giocatore {giocatori.index(vincitore)+1} "
+            f"con {carteGiocatori[vincitore]['pila']} punti!\n")
+        print("Il giocatore", giocatori.index(g)+1, "ha totalizzato", carteGiocatori[g]['pila'], "punti.")
         
+    print("Partita terminata")
+    return
+
 def calcolaVincitoreTurno(tavolo,briscola,carteGiocatori):
     # DETERMINA VINCITORE DEL TURNO
 
