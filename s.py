@@ -64,7 +64,6 @@ mazzoConfronti = {
     'S10': {'punti': 4,  'forza': 10},
 }
 
-
 listaGiocatori = []
 
 avvio = False
@@ -302,30 +301,26 @@ def partita(listaGiocatori):
     calcolaPunteggioPartita(carteGiocatori)
         
 
+def main():
+    sSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sSocket.bind(("localhost", 1234))
+    sSocket.listen(4)
 
+    while True:
+        c = input("Avviare nuova partita? *Y/N: ").strip().upper()
+        if c == "N":
+            break
 
-sSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sSocket.bind(("localhost", 1234))
-sSocket.listen(4)
+        listaGiocatori.clear()
+        
+        avvio = False
 
-while True:
-    c = input("Avviare nuova partita? *Y/N: ").strip().upper()
-    if c == "N":
-        break
+        print("Server in attesa...\n")
+        threading.Thread(target=accettaGiocatori, args=(sSocket,)).start()
 
-    listaGiocatori.clear()
-    
-    avvio = False
+        while not avvio:
+            time.sleep(10)
+            timerScaduto()
 
-    print("Server in attesa...\n")
-    threading.Thread(target=accettaGiocatori, args=(sSocket,)).start()
-
-    while not avvio:
-        time.sleep(10)
-        timerScaduto()
-
-
-    partita(listaGiocatori)
-
-    
+        partita(listaGiocatori)
