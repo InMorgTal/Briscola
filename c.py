@@ -1,6 +1,6 @@
 import socket
 import time
-
+import os
 avvio = False
 
 def invia(conn, mess):
@@ -66,6 +66,7 @@ while True:
 
     # --- CICLO DI GIOCO ---
     while True:
+       
         try:
             msg = ricevi(cSocket)
             if msg == -1:
@@ -73,25 +74,34 @@ while True:
                 cSocket.close()
                 time.sleep(5)
                 continue
-
+            os.system('cls')
             print(msg)#stampiamo lo stato del gioco
+            if "terminata" in msg:
 
+                break
+
+            if "vincitore" in msg:
+                time.sleep(4)
+                continue
             
+            
+           
+  
 
             righe = msg.split("\n")
-            print("CONTROLLO1")
-            mano = righe[4].split(":", 1)[1].split(",")#otteniamo list mano
-            
-            if mano == "":
+
+            mano_str = righe[4].split(":", 1)[1].strip()  # ottengo la parte dopo 'Mano:'
+
+            if mano_str == "":
                 mano = []
             else:
-                mano = mano.split(",")
-            
-            print("CONTROLLO2")
-            numGiocatore = int(righe[1].split(":", 1)[1])# otteniamo num giocatore
-            print("CONTROLLO3")
-            turnoGiocatore = int(righe[2].split(":", 1)[1])# otteniamo turno giocatore
-            print("CONTROLLO4")
+                mano = mano_str.split(",")
+  
+
+            numGiocatore = int(righe[1].split(":", 1)[1].strip())  # otteniamo num giocatore
+
+            turnoGiocatore = int(righe[2].split(":", 1)[1].strip())  # otteniamo turno giocatore
+
             if numGiocatore == turnoGiocatore:
                 print("È il tuo turno")
                 while True:
@@ -101,8 +111,14 @@ while True:
                     print("Carta non valida.")
 
                 cSocket.sendall(carta.encode())
+
             else:
                 print("Attendi")
+
+
+            
+
+            
 
         except Exception as e:
             print(f"Errore: {e}")

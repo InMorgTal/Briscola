@@ -4,10 +4,14 @@ import time
 import random
 
 mazzo_base = [
-    'B1','B2','B3','B4','B5','B6','B7','B8','B9','B10',
-    'D1','D2','D3','D4','D5','D6','D7','D8','D9','D10',
-    'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10',
-    'S1','S2','S3','S4','S5','S6','S7','S8','S9','S10'
+    #'B1','B2','B3','B4','B5',
+    'B6','B7','B8','B9','B10',
+    #'D1','D2','D3','D4','D5',
+    'D6','D7','D8','D9','D10',
+    'C1','C2','C3','C4','C5',
+    #'C6','C7','C8','C9','C10',
+    #'S1','S2','S3','S4','S5',
+    'S6','S7','S8','S9','S10'
 ]
 
 mazzoConfronti = {
@@ -71,9 +75,11 @@ def ricevi(conn):
     try:
         data = conn.recv(1024).decode().strip()
         if not data:
+            print("Errore ricezione: connessione chiusa dal client")
             return -1
         return data
-    except:
+    except Exception as e:
+        print(f"Errore ricezione: {e}")
         return -1
         
 def invia(conn, mess):
@@ -121,13 +127,26 @@ def verificaConnessione(conn, addr):
 
 def accettaGiocatori(sSocket):
     global avvio
+    sSocket.settimeout(1)  # Imposto timeout di 1 secondo
+
     while not avvio:
-        cSocket, cAddr = sSocket.accept()
+        try:
+            cSocket, cAddr = sSocket.accept()
+        except socket.timeout:
+            # Timeout scaduto, controllo se avvio è cambiato e riparto
+            continue
+        except Exception as e:
+            print(f"Errore su accept: {e}")
+            continue
+
         with lock:
             listaGiocatori.append(cSocket)
             print("Giocatore arrivato, tot:", len(listaGiocatori))
+
         threading.Thread(target=verificaConnessione, args=(cSocket, cAddr)).start()
 
+    sSocket.settimeout(None)  # Rimetto modalità bloccante (opzionale)
+    
 def calcolaPunteggioPartita(carteGiocatori):
     
     vincitore = listaGiocatori[0]
@@ -152,9 +171,9 @@ def calcolaPunteggioPartita(carteGiocatori):
             
         for g in listaGiocatori:
             invia(g, f"Hai totalizzato {carteGiocatori[g]['pila']} punti, il vincitore della partita e' il giocatore {listaGiocatori.index(vincitore)+1} con {carteGiocatori[vincitore]['pila']} punti!\n")
-            return 
+        return 
         
-def calcolaVincitoreTurno(tavolo,briscola):
+def calcolaVincitoreTurno(tavolo,briscola,carteGiocatori):
     # DETERMINA VINCITORE DEL TURNO
 
     carta_vincente = list(tavolo.keys())[0]
@@ -171,12 +190,17 @@ def calcolaVincitoreTurno(tavolo,briscola):
         elif seme_carta == seme_vincente and mazzoConfronti[carta]['forza'] > mazzoConfronti[carta_vincente]['forza']:
             carta_vincente = carta
     
-    return carta_vincente
+    vincitore=tavolo[carta_vincente]
+    print("carta vincente:", carta_vincente, "giocatore:", listaGiocatori.index(vincitore)+1)
+    carteGiocatori[vincitore]['pila'] += calcolaPunteggioTurno(tavolo)
+    print("Punti totali giocatore", listaGiocatori.index(vincitore)+1, ":", carteGiocatori[vincitore]['pila'])
+    return vincitore
 
 def calcolaPunteggioTurno(tavolo):
     punteggio = 0
     for carta in tavolo.keys():
         punteggio += mazzoConfronti[carta]['punti']
+    print(punteggio)
     return punteggio
 
 def isPartitaFinita(listaGiocatori, carteGiocatori):
@@ -208,9 +232,6 @@ def partita(listaGiocatori):
 
     random.shuffle(mazzo)
     random.shuffle(mazzo)
-
-    for g in listaGiocatori:
-        carteGiocatori[g] = {'mano': [], 'pila': []}
 
     mazzo.append(mazzo.pop(0))#prendo briscola da sopra mazzo 
     briscola = mazzo[-1][0]# metto la briscola in fondo mazzo
@@ -253,19 +274,25 @@ def partita(listaGiocatori):
                 # invia a tutti i giocatori lo stato attuale
             print ("attendo carta da giocatore", listaGiocatori.index(g)+1)
             carta = ricevi(g) # prendiamo la carta giocata dal giocatore (controlli lato client)
+            
+            if carta == -1:
+                print("Giocatore disconnesso, terminazione partita")
+                for x in listaGiocatori:
+                    if x != g:
+                        invia(x, "Un giocatore si e' disconnesso, partita terminata.\n")
+                return
+            
             print("ricevuta carta:", carta, "da giocatore", listaGiocatori.index(g)+1)
-            tavolo[carta]= [g]# aggiungiamo carta al tavolo associata al giocatore
+            tavolo[carta]= g # aggiungiamo carta al tavolo associata al giocatore
 
             carteGiocatori[g]['mano'].remove(carta)
 
             turno = (turno + 1) % len(listaGiocatori)
-
-        vincitore=tavolo[calcolaVincitoreTurno(tavolo, briscola)]
         
+        vincitore = calcolaVincitoreTurno(tavolo, briscola,carteGiocatori)
+      
+        turno = listaGiocatori.index(vincitore) # il vincitore inizia il prossimo turno
         
-
-        carteGiocatori[vincitore]['pila']+= calcolaPunteggioTurno(tavolo)
-
         for x in listaGiocatori:
             invia(x, f"Il vincitore del round e' il giocatore {listaGiocatori.index(vincitore)+1}, totalizzando {carteGiocatori[vincitore]['pila']} punti\n")
 
