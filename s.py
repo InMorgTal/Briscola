@@ -82,11 +82,6 @@ def invia(conn, mess):
     except:
         return -1
 
-def giocatore_arrivato(conn):
-    with lock:
-        listaGiocatori.append(conn)
-        print("Giocatore arrivato, tot:", len(listaGiocatori))
-
 def giocatore_uscito(conn):
     with lock:
         if conn in listaGiocatori:
@@ -128,7 +123,9 @@ def accettaGiocatori(sSocket):
     global avvio
     while not avvio:
         cSocket, cAddr = sSocket.accept()
-        giocatore_arrivato(cSocket)
+        with lock:
+            listaGiocatori.append(cSocket)
+            print("Giocatore arrivato, tot:", len(listaGiocatori))
         threading.Thread(target=verificaConnessione, args=(cSocket, cAddr)).start()
 
 def calcolaPunteggioPartita(carteGiocatori):
@@ -203,9 +200,7 @@ def partita(listaGiocatori):
     tavolo = {}
 
     for g in listaGiocatori:
-        invia(g, "La partita inizia!")
-    for g in listaGiocatori:
-        invia(g, str(len(listaGiocatori)))
+        invia(g, "start")# segnale per client di iniziare partita e uscire da verificaConnessione
 
     print("Inizio gioco")
 
@@ -249,14 +244,16 @@ def partita(listaGiocatori):
 
                 invia(
                         x,
-                        f"Turno del giocatore {listaGiocatori.index(g)+1}\n"
-                        f"Briscola: {briscola} Tavolo: {tavolo_str}\n"
-                        f"Mano: {mano_str}\n"
+                        f"Numero giocatori:{len(listaGiocatori)}\n"
+                        f"Tu sei giocatore:{listaGiocatori.index(x)+1}\n"
+                        f"Turno giocatore:{listaGiocatori.index(g)+1}\n"
+                        f"Briscola:{briscola} Tavolo:{tavolo_str}\n"
+                        f"Mano:{mano_str}\n"
                     )
-                # invia(x, f"Turno del giocatore {listaGiocatori.index(g)+1} \nBriscola: {briscola} Tavolo: {",".join(tavolo.keys)} \nMano: {",".join(carteGiocatori[x]['mano'])}\n")
-
+                # invia a tutti i giocatori lo stato attuale
+            print ("attendo carta da giocatore", listaGiocatori.index(g)+1)
             carta = ricevi(g) # prendiamo la carta giocata dal giocatore (controlli lato client)
-
+            print("ricevuta carta:", carta, "da giocatore", listaGiocatori.index(g)+1)
             tavolo[carta]= [g]# aggiungiamo carta al tavolo associata al giocatore
 
             carteGiocatori[g]['mano'].remove(carta)
