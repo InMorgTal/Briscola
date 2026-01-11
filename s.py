@@ -244,7 +244,16 @@ def partita(listaGiocatori):
 
             # Invia turno briscola tavolo e mano
             for x in listaGiocatori:
-                invia(x, f"Turno del giocatore {listaGiocatori.index(g)+1} \nBriscola: {briscola} Tavolo: {",".join(tavolo.keys)} \nMano: {",".join(carteGiocatori[x]['mano'])}\n")
+                tavolo_str = ",".join(tavolo.keys())
+                mano_str = ",".join(carteGiocatori[x]['mano'])
+
+                invia(
+                        x,
+                        f"Turno del giocatore {listaGiocatori.index(g)+1}\n"
+                        f"Briscola: {briscola} Tavolo: {tavolo_str}\n"
+                        f"Mano: {mano_str}\n"
+                    )
+                # invia(x, f"Turno del giocatore {listaGiocatori.index(g)+1} \nBriscola: {briscola} Tavolo: {",".join(tavolo.keys)} \nMano: {",".join(carteGiocatori[x]['mano'])}\n")
 
             carta = ricevi(g) # prendiamo la carta giocata dal giocatore (controlli lato client)
 

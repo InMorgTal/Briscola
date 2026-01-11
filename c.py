@@ -32,20 +32,18 @@ def verificaConnessione(conn):
 cSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 while True:
+    cSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print("Connettendo al server...\n")
 
-    avvio = False
+    try:
+        cSocket.connect(("localhost", 1234))
+        break
+    except Exception as e:
+        print(f"Errore: {e}  Attendi per riprovare...\n")
+        time.sleep(5)
 
-    while not avvio:
-        print("Connettendo al server...\n")
-        try:
-            cSocket.connect(("localhost", 1234))
-        except Exception as e:
-            print(f"Errore: {e}  Attendi per riprovare...\n")
-            time.sleep(5)
-            continue
-
-        print("In attesa che il server avvii la partita...\n")
-        verificaConnessione(cSocket)
+    print("In attesa che il server avvii la partita...\n")
+    verificaConnessione(cSocket)
 
     # Numero giocatori
     n = int(cSocket.recv(1024).decode())
@@ -54,44 +52,25 @@ while True:
     # --- CICLO DI GIOCO ---
     while True:
         try:
-            msg = cSocket.recv(1024).decode()
-           
-            parti = msg.split(":", 1)
-            comando = parti[0]
-            contenuto = parti[1] if len(parti) > 1 else ""
+            msg = cSocket.recv(4096).decode()
+            if not msg:
+                break
 
-            if comando == "Briscola":
-                print(f"Briscola: {contenuto}\n")
+            print(msg)
 
-            elif comando == "Tavolo":
-                print(f"Tavolo: {contenuto}\n")
-
-            elif comando == "Attendi_il_tuo_turno":
-                print("Aspetta il tuo turno...\n")
-
-            elif comando == "Your_turn":
-                print(f"La tua mano: {contenuto}")
-                mano = contenuto.split(",")
+            if "Mano:" in msg:
+                mano = msg.split("Mano:")[1].strip().split(",")
 
                 while True:
-                    carta = input("Scegli una carta da giocare: ").strip()
+                    carta = input("Scegli una carta da giocare: ").strip().upper()
                     if carta in mano:
                         break
-                    print("Carta non valida, riprova.")
+                    print("Carta non valida.")
 
                 cSocket.sendall(carta.encode())
 
-            elif comando == "Fine_turno":
-                print(f"Ha preso il giocatore {contenuto}\n")
-
-            elif comando == "Pesca":
-                print(f"Hai pescato, nuova mano: {contenuto}\n")
-
-            else:
-                print(f"Messaggio dal server: {msg}")
-
         except Exception as e:
-            print(f"Errore durante la comunicazione: {e}\n")
+            print(f"Errore: {e}")
             break
 
     cSocket.close()
