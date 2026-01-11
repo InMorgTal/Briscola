@@ -116,3 +116,6 @@ def main():
 
         cSocket.close()
         break
+
+if __name__ == "__main__":
+    main()

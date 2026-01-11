@@ -192,14 +192,14 @@ def calcolaVincitoreTurno(tavolo,briscola,carteGiocatori):
     vincitore=tavolo[carta_vincente]
     print("carta vincente:", carta_vincente, "giocatore:", listaGiocatori.index(vincitore)+1)
     carteGiocatori[vincitore]['pila'] += calcolaPunteggioTurno(tavolo)
-    print("Punti totali giocatore", listaGiocatori.index(vincitore)+1, ":", carteGiocatori[vincitore]['pila'])
+    print("Punti fatti", calcolaPunteggioTurno(tavolo))
     return vincitore
 
 def calcolaPunteggioTurno(tavolo):
     punteggio = 0
     for carta in tavolo.keys():
         punteggio += mazzoConfronti[carta]['punti']
-    print(punteggio)
+
     return punteggio
 
 def isPartitaFinita(listaGiocatori, carteGiocatori):
@@ -302,6 +302,9 @@ def partita(listaGiocatori):
         
 
 def main():
+
+    global avvio
+
     sSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sSocket.bind(("localhost", 1234))
@@ -324,3 +327,6 @@ def main():
             timerScaduto()
 
         partita(listaGiocatori)
+
+if __name__ == "__main__":
+    main()
