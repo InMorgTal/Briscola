@@ -3,6 +3,8 @@ import threading
 import time
 import random
 
+# Librerie principali, gestione socket e thread
+
 mazzo_base = [
     #'B1','B2','B3','B4','B5',
     'B6','B7','B8','B9','B10',
@@ -13,6 +15,7 @@ mazzo_base = [
     #'S1','S2','S3','S4','S5',
     'S6','S7','S8','S9','S10'
 ]
+# Mazzo base carte (usate nella partita)
 
 mazzoConfronti = {
     # Basti (B)
@@ -64,6 +67,7 @@ mazzoConfronti = {
     'S10': {'punti': 4,  'forza': 10},
 }
 
+# Connessioni client attivi
 listaGiocatori = []
 
 avvio = False
@@ -71,6 +75,7 @@ avvio = False
 lock = threading.Lock()
 
 def ricevi(conn):
+    # Ricezione dati dal client, ritorna stringa o -1 su errore/disconnessione
     try:
         data = conn.recv(1024).decode().strip()
         if not data:
@@ -82,12 +87,14 @@ def ricevi(conn):
         return -1
         
 def invia(conn, mess):
+    # Invio messaggi al client, ritorna -1 se invio fallisce
     try:
         conn.sendall(mess.encode())
     except:
         return -1
 
 def giocatore_uscito(conn):
+    # Rimuovi giocatore disconnesso e chiudi socket
     with lock:
         if conn in listaGiocatori:
             listaGiocatori.remove(conn)
@@ -96,6 +103,7 @@ def giocatore_uscito(conn):
 
 def timerScaduto():
     global avvio
+    # Timer avvio partita: verifica numero giocatori valido
     with lock:
         n = len(listaGiocatori)
         if n in (2, 4):
@@ -106,6 +114,7 @@ def timerScaduto():
 
 def verificaConnessione(conn, addr):
     global avvio
+    # Controllo connessione periodico durante fase attesa
     while not avvio:
         try:
             conn.sendall(b"In attesa...")
@@ -126,7 +135,7 @@ def verificaConnessione(conn, addr):
 
 def accettaGiocatori(sSocket):
     global avvio
-    sSocket.settimeout(1)  # Imposto timeout di 1 secondo
+    sSocket.settimeout(1)  # Timeout1s: accept non bloccante per controlli
 
     while not avvio:
         try:
@@ -142,20 +151,24 @@ def accettaGiocatori(sSocket):
             listaGiocatori.append(cSocket)
             print("Giocatore arrivato, tot:", len(listaGiocatori))
 
+        # Avvia thread che mantiene connessione e segnala disconnessione
         threading.Thread(target=verificaConnessione, args=(cSocket, cAddr)).start()
 
     sSocket.settimeout(None)  # Rimetto modalità bloccante (opzionale)
     
 def calcolaPunteggioPartita(carteGiocatori):
+    # Calcolo risultati finali: gestisce 2 o 4 giocatori, invio messaggi e log
     giocatori = list(carteGiocatori.keys())
 
     # 4 giocatori: somma per squadre (G1+G3 contro G2+G4)
     if len(giocatori) == 4:
+        # Leggi punti individuali
         punti_g1 = carteGiocatori[giocatori[0]]['pila']
         punti_g2 = carteGiocatori[giocatori[1]]['pila']
         punti_g3 = carteGiocatori[giocatori[2]]['pila']
         punti_g4 = carteGiocatori[giocatori[3]]['pila']
 
+        # Somma punteggi squadre (G1+G3 vs G2+G4)
         puntiS1 = punti_g1 + punti_g3  # G1 e G3
         puntiS2 = punti_g2 + punti_g4  # G2 e G4
 
@@ -169,6 +182,7 @@ def calcolaPunteggioPartita(carteGiocatori):
             msg = f"Partita terminata.\nPareggio! Squadra 1: {puntiS1} punti, Squadra 2: {puntiS2} punti."
             print("Pareggio! Squadra 1:", puntiS1, "punti, Squadra 2:", puntiS2, "punti.")
 
+        # Invia risultato a ciascun giocatore e log
         for g in giocatori:
             invia(g, f"Hai totalizzato {carteGiocatori[g]['pila']} punti. {msg}\n")
             print("Il giocatore", giocatori.index(g)+1, "ha totalizzato", carteGiocatori[g]['pila'], "punti.")
@@ -191,20 +205,23 @@ def calcolaPunteggioPartita(carteGiocatori):
     return
 
 def calcolaVincitoreTurno(tavolo,briscola,carteGiocatori):
-    # DETERMINA VINCITORE DEL TURNO
+    # Determina carta vincente considerando briscola e forza carte
 
     carta_vincente = list(tavolo.keys())[0]
 
     seme_vincente = carta_vincente[0]
 
     for carta in list(tavolo.keys())[1:]:
+        # Confronta seme e briscola
         seme_carta = carta[0]
         if seme_vincente == briscola and seme_carta != briscola:
             continue
         elif seme_carta == briscola and seme_vincente != briscola:
+            # Briscola batte non-briscola
             carta_vincente = carta
             seme_vincente = seme_carta
         elif seme_carta == seme_vincente and mazzoConfronti[carta]['forza'] > mazzoConfronti[carta_vincente]['forza']:
+            # Stesso seme: confronta forza
             carta_vincente = carta
     
     vincitore=tavolo[carta_vincente]
@@ -214,6 +231,7 @@ def calcolaVincitoreTurno(tavolo,briscola,carteGiocatori):
     return vincitore
 
 def calcolaPunteggioTurno(tavolo):
+    # Somma punti delle carte sul tavolo per il turno
     punteggio = 0
     for carta in tavolo.keys():
         punteggio += mazzoConfronti[carta]['punti']
@@ -221,15 +239,17 @@ def calcolaPunteggioTurno(tavolo):
     return punteggio
 
 def isPartitaFinita(listaGiocatori, carteGiocatori):
+    # Controlla se tutti i giocatori hanno esaurito le carte
     for g in listaGiocatori:
         if len(carteGiocatori[g]['mano']) != 0:
-            return False  # Almeno un giocatore ha ancora carte
-    return True  # Tutti hanno finito le carte
+            return False  # Partita non terminata
+    return True  # Partita terminata
 
 def partita(listaGiocatori):
 
     Fine = False
 
+    # Inizializza strutture giocatori e tavolo
     carteGiocatori = {}
 
     for g in listaGiocatori:
@@ -238,22 +258,26 @@ def partita(listaGiocatori):
             'pila': 0
         }
 
+    # Stato carte sul tavolo per turno
     tavolo = {}
 
     for g in listaGiocatori:
-        invia(g, "start")# segnale per client di iniziare partita e uscire da verificaConnessione
+        invia(g, "start") # Segnale inizio partita al client
 
     print("Inizio gioco")
 
     mazzo = mazzo_base.copy()
 
+    # Mischia mazzo più volte per casualità
     random.shuffle(mazzo)
     random.shuffle(mazzo)
 
-    mazzo.append(mazzo.pop(0))#prendo briscola da sopra mazzo 
-    briscola = mazzo[-1][0]# metto la briscola in fondo mazzo
+    # Seleziona la prima carta come briscola, spostandola in fondo mazzo
+    mazzo.append(mazzo.pop(0)) # Seleziona briscola e sposta in fondo mazzo
+    briscola = mazzo[-1][0] # Lettura seme briscola
 
-    for _ in range(3):#come nella briscola vera do una carta a testa per tre volte dal mazzo
+    # Distribuzione iniziale di 3 carte per giocatore (ordine di mano)
+    for _ in range(3): # Distribuzione iniziale: 3 carte a ciascun giocatore
         for g in listaGiocatori:
             carteGiocatori[g]['mano'].append(mazzo.pop(0))
 
@@ -263,19 +287,20 @@ def partita(listaGiocatori):
 
         tavolo.clear()
 
-        # peschiamo se necessario
+        # Pesca carte dal mazzo se disponibili per mantenere 3 in mano
         if len(mazzo) > 0 and len(carteGiocatori[listaGiocatori[turno]]['mano']) < 3:
+            # Ogni giocatore pesca una carta
             for g in listaGiocatori:
                 carteGiocatori[g]['mano'].append(mazzo.pop(0))
 
 
-        # turno dei giocatori
+        # Ciclo turno giocatori: ciascun giocatore gioca una carta per round
         for _ in listaGiocatori:
 
-             #prendiamo il giocatore che iniziera il turno che si decide a fine round o a inizio partita dal primo
+             # Seleziona giocatore corrente in base a turno
             g = listaGiocatori[turno] 
 
-            # Invia turno briscola tavolo e mano
+            # Invio stato a tutti i client: numero, turno, briscola, mano
             for x in listaGiocatori:
                 tavolo_str = ",".join(tavolo.keys())
                 mano_str = ",".join(carteGiocatori[x]['mano'])
@@ -288,34 +313,40 @@ def partita(listaGiocatori):
                         f"Briscola:{briscola} Tavolo:{tavolo_str}\n"
                         f"Mano:{mano_str}\n"
                     )
-                # invia a tutti i giocatori lo stato attuale
+                # Broadcast stato a client
             print ("attendo carta da giocatore", listaGiocatori.index(g)+1)
-            carta = ricevi(g) # prendiamo la carta giocata dal giocatore (controlli lato client)
+            # Ricezione carta giocata dal client (controllo disconnessione)
+            carta = ricevi(g) # Ricezione carta dal client, -1 se disconnesso
             
             if carta == -1:
                 print("Giocatore disconnesso, terminazione partita")
+                # Notifica gli altri e termina partita
                 for x in listaGiocatori:
                     if x != g:
                         invia(x, "Un giocatore si e' disconnesso, partita terminata.\n")
                 return
             
             print("ricevuta carta:", carta, "da giocatore", listaGiocatori.index(g)+1)
-            tavolo[carta]= g # aggiungiamo carta al tavolo associata al giocatore
+            # Aggiunge carta giocata al tavolo e la rimuove dalla mano
+            tavolo[carta]= g # Aggiungi carta al tavolo con riferimento giocatore
 
             carteGiocatori[g]['mano'].remove(carta)
 
+            # Passa al giocatore successivo
             turno = (turno + 1) % len(listaGiocatori)
         
         vincitore = calcolaVincitoreTurno(tavolo, briscola,carteGiocatori)
       
-        turno = listaGiocatori.index(vincitore) # il vincitore inizia il prossimo turno
+        turno = listaGiocatori.index(vincitore) # ProssimoTurno: vincitore inizia round successivo
         
         for x in listaGiocatori:
             invia(x, f"Il vincitore del round e' il giocatore {listaGiocatori.index(vincitore)+1}, totalizzando {carteGiocatori[vincitore]['pila']} punti\n")
 
         if isPartitaFinita(listaGiocatori, carteGiocatori)== True:
+            # Termina loop principale quando tutte le mani esaurite
             Fine = True
 
+    # Calcola ed invia risultati finali
     calcolaPunteggioPartita(carteGiocatori)
         
 

@@ -2,14 +2,19 @@ import socket
 import time
 import os
 avvio = False
+# Flag avvio partita (True quando il server comunica start)
+
+# Librerie
 
 def invia(conn, mess):
+    # Invio
     try:
         conn.sendall(mess.encode())
     except:
         return -1
 
 def ricevi(conn):
+    # Ricezione
     try:
         data = conn.recv(1024).decode().strip()
         if not data:
@@ -20,6 +25,7 @@ def ricevi(conn):
 
 def verificaConnessione(conn):
     global avvio
+    # Ascolto messaggi server e segnalo avvio
     while True:
         try:
             data = conn.recv(1024).decode().strip()
@@ -48,6 +54,7 @@ def main():
     while True:
         
         print("Connettendo al server...\n")
+        # Connessione al server
         try:
             cSocket.connect(("localhost", 1234))
     
@@ -57,16 +64,18 @@ def main():
             continue
 
         print("In attesa che il server avvii la partita...\n")
+        # Attesa segnale start dal server
         if verificaConnessione(cSocket) == -1:
             print("Connessione persa, interruzione partita\n")
             cSocket.close()
             time.sleep(5)
             continue
 
-        # --- CICLO DI GIOCO ---
+        # CicloGioco
         while True:
         
             try:
+                # Ricezione stato dal server
                 msg = ricevi(cSocket)
                 if msg == -1:
                     print("Connessione persa, interruzione partita\n")
@@ -74,7 +83,7 @@ def main():
                     time.sleep(5)
                     continue
                 os.system('cls')
-                print(msg)#stampiamo lo stato del gioco
+                print(msg) # StampaStato
                 if "terminata" in msg:
 
                     break
@@ -83,9 +92,11 @@ def main():
                     time.sleep(4)
                     continue
                 
+                # Parsing messaggio di stato in righe
                 righe = msg.split("\n")
 
-                mano_str = righe[4].split(":", 1)[1].strip()  # ottengo la parte dopo 'Mano:'
+                # Estrai stringa mano dal messaggio
+                mano_str = righe[4].split(":", 1)[1].strip()  # EstraiMano
 
                 if mano_str == "":
                     mano = []
@@ -93,9 +104,9 @@ def main():
                     mano = mano_str.split(",")
     
 
-                numGiocatore = int(righe[1].split(":", 1)[1].strip())  # otteniamo num giocatore
+                numGiocatore = int(righe[1].split(":", 1)[1].strip())  # NumGiocatore
 
-                turnoGiocatore = int(righe[2].split(":", 1)[1].strip())  # otteniamo turno giocatore
+                turnoGiocatore = int(righe[2].split(":", 1)[1].strip())  # TurnoGiocatore
 
                 if numGiocatore == turnoGiocatore:
                     print("È il tuo turno")
@@ -105,6 +116,7 @@ def main():
                             break
                         print("Carta non valida.")
 
+                    # Invia carta scelta al server
                     cSocket.sendall(carta.encode())
 
                 else:
@@ -114,6 +126,7 @@ def main():
                 print(f"Errore: {e}")
                 break
 
+        # Chiudi socket client e termina
         cSocket.close()
         break
 
